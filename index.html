@@ -4709,7 +4709,7 @@
             // 不阻止默认错误处理，但记录错误
         });
         
-        // 修复所有图片路径 - 强制修复所有 img 标签的 src
+        // 修复所有图片路径 - 直接在页面加载时修复所有 img 标签的 src
         function fixAllImagePaths() {
             try {
                 // 检测是否是 GitHub Pages
@@ -4723,88 +4723,31 @@
                     }
                 }
                 
-                if (!isGitHubPages) {
-                    console.log('本地环境，不需要修复路径');
-                    return;
-                }
-                
-                console.log('🔧 开始修复图片路径，BASE_PATH:', basePath);
-                
-                // 修复所有 img 标签的 src（包括所有以 images/ 开头的）
-                var allImages = document.querySelectorAll('img');
-                var fixedCount = 0;
+                // 修复所有 img 标签的 src（如果是以 images/ 开头的相对路径）
+                var allImages = document.querySelectorAll('img[src^="images/"]');
                 for (var i = 0; i < allImages.length; i++) {
                     var img = allImages[i];
-                    var originalSrc = img.getAttribute('src') || img.src;
-                    
-                    // 如果是相对路径 images/ 开头，且不是完整URL
-                    if (originalSrc && originalSrc.indexOf('images/') === 0 && originalSrc.indexOf('http') !== 0) {
-                        var newSrc = basePath + originalSrc;
-                        // 添加 loading="lazy" 优化加载性能（前3张关键图片不懒加载）
-                        if (i >= 3 && !img.hasAttribute('loading')) {
-                            img.setAttribute('loading', 'lazy');
+                    var originalSrc = img.getAttribute('src');
+                    if (originalSrc && originalSrc.indexOf('images/') === 0) {
+                        if (isGitHubPages) {
+                            img.src = basePath + originalSrc;
                         }
-                        // 添加错误处理
-                        img.onerror = function() {
-                            console.error('❌ 图片加载失败:', this.src);
-                            // 尝试重新加载一次
-                            var failedSrc = this.src;
-                            var retrySrc = failedSrc.replace('/rongronghuajing/', '/').replace('/rongronghuajing/', '/');
-                            if (retrySrc !== failedSrc) {
-                                this.src = retrySrc;
-                            }
-                        };
-                        img.src = newSrc;
-                        fixedCount++;
-                        console.log('✅ 修复图片:', originalSrc, '->', newSrc);
+                        // 如果是本地文件，保持原样
                     }
                 }
                 
-                // 修复 video source 和 video 标签的 src
-                var allVideos = document.querySelectorAll('video');
-                for (var v = 0; v < allVideos.length; v++) {
-                    var video = allVideos[v];
-                    // 修复 video 标签本身的 src（如果有）
-                    var videoSrc = video.getAttribute('src');
-                    if (videoSrc && videoSrc.indexOf('images/') === 0 && videoSrc.indexOf('http') !== 0) {
-                        video.src = basePath + videoSrc;
-                        fixedCount++;
-                        console.log('✅ 修复视频:', videoSrc, '->', basePath + videoSrc);
-                    }
-                    // 修复 video 内的 source 标签
-                    var sources = video.querySelectorAll('source');
-                    for (var s = 0; s < sources.length; s++) {
-                        var source = sources[s];
-                        var src = source.getAttribute('src');
-                        if (src && src.indexOf('images/') === 0 && src.indexOf('http') !== 0) {
-                            source.src = basePath + src;
-                            fixedCount++;
-                            console.log('✅ 修复视频源:', src, '->', basePath + src);
-                        }
-                    }
-                }
-                
-                console.log('✅ 共修复', fixedCount, '个资源路径');
+                console.log('✅ 已修复所有图片路径，GitHub Pages:', isGitHubPages, 'BASE_PATH:', basePath || './');
             } catch (e) {
-                console.error('❌ 修复图片路径失败:', e);
+                console.error('修复图片路径失败:', e);
             }
         }
         
-        // 立即执行一次，然后在 DOMContentLoaded 时再执行一次，确保修复成功
-        fixAllImagePaths();
-        
+        // 页面加载完成后修复图片路径
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() {
-                setTimeout(fixAllImagePaths, 100);
-            });
+            document.addEventListener('DOMContentLoaded', fixAllImagePaths);
         } else {
-            setTimeout(fixAllImagePaths, 100);
+            fixAllImagePaths();
         }
-        
-        // window.onload 时再执行一次（确保所有内容都加载了）
-        window.addEventListener('load', function() {
-            setTimeout(fixAllImagePaths, 200);
-        });
         
         // 动态获取基础路径（适配 GitHub Pages 子路径和本地文件）
         function getBasePath() {
@@ -4813,10 +4756,10 @@
                     return './';
                 }
                 
-                var protocol = window.location.protocol || '';
-                var hostname = window.location.hostname || '';
-                var path = window.location.pathname || '';
-                var href = window.location.href || '';
+                const protocol = window.location.protocol || '';
+                const hostname = window.location.hostname || '';
+                const path = window.location.pathname || '';
+                const href = window.location.href || '';
                 
                 // 如果是本地文件（file:// 协议），使用相对路径
                 if (protocol === 'file:') {
@@ -7536,9 +7479,9 @@
                     document.addEventListener('mouseup', handleMouseUp);
                     
                     // 触摸事件支持
-                    var touchStartX = 0;
-                    var touchScrollLeft = 0;
-                    var isTouching = false;
+                    let touchStartX = 0;
+                    let touchScrollLeft = 0;
+                    let isTouching = false;
                     
                     wrapper.addEventListener('touchstart', function(e) {
                         if (e.target.closest('a, button')) {
