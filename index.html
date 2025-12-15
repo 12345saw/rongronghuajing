@@ -2,12 +2,16 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
     <meta name="format-detection" content="telephone=no">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1A1612">
+    <meta name="description" content="绒绒花境 - 游戏策划文档，数媒233班王诗情">
+    <meta name="robots" content="index, follow">
     <title>绒绒花境 - 游戏策划文档</title>
     <!-- 引入Google Fonts - 更有设计感的字体 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4775,14 +4779,16 @@
     </div> <!-- 主内容区域结束 -->
 
     <script>
-        // iOS关键修复：立即显示页面内容，防止白屏
+        // 移动端关键修复：立即显示页面内容，防止白屏
         (function() {
             try {
-                // 确保body可见
+                // 立即显示body，不等待任何资源加载
                 if (document.body) {
                     document.body.style.visibility = 'visible';
                     document.body.style.opacity = '1';
+                    document.body.style.display = 'block';
                 }
+                
                 // 确保欢迎页面可见
                 var welcomePage = document.getElementById('welcomePage');
                 if (welcomePage) {
@@ -4790,10 +4796,43 @@
                     welcomePage.style.opacity = '1';
                     welcomePage.style.display = 'flex';
                 }
+                
+                // 确保主内容可见
+                var mainContent = document.querySelector('.main-content');
+                if (mainContent) {
+                    mainContent.style.visibility = 'visible';
+                    mainContent.style.opacity = '1';
+                }
             } catch(e) {
-                // 忽略错误
+                // 忽略错误，但确保页面至少能显示
+                try {
+                    if (document.body) {
+                        document.body.style.display = 'block';
+                        document.body.style.visibility = 'visible';
+                    }
+                } catch(e2) {
+                    // 最后的后备方案
+                }
             }
         })();
+        
+        // 页面加载超时保护：如果5秒后还没加载完，强制显示内容
+        setTimeout(function() {
+            try {
+                if (document.body) {
+                    document.body.style.visibility = 'visible';
+                    document.body.style.opacity = '1';
+                }
+                var welcomePage = document.getElementById('welcomePage');
+                if (welcomePage) {
+                    welcomePage.style.display = 'flex';
+                    welcomePage.style.visibility = 'visible';
+                    welcomePage.style.opacity = '1';
+                }
+            } catch(e) {
+                // 忽略
+            }
+        }, 5000);
         
         // 检测微信浏览器（仅用于兼容性处理，不显示提示）
         var isWeChat = /MicroMessenger/i.test(navigator.userAgent);
