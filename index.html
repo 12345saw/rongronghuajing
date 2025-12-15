@@ -4918,7 +4918,7 @@
                         }
                     };
                     
-                    // 图片加载失败时显示错误信息
+                    // 图片加载失败时显示错误信息并尝试备用路径
                     img.onerror = function() {
                         console.error('图片加载失败:');
                         console.error('  - 尝试的路径:', img.src);
@@ -4927,54 +4927,57 @@
                         console.error('  - BASE_PATH:', BASE_PATH);
                         console.error('  - 当前页面URL:', window.location.href);
                         
-                        placeholder.style.borderColor = 'rgba(255, 0, 0, 0.5)';
-                        placeholder.style.background = 'rgba(255, 0, 0, 0.1)';
-                        
-                        // 显示错误信息
-                        const errorText = document.createElement('div');
-                        errorText.textContent = '图片未找到: ' + filename;
-                        errorText.style.color = '#ff6b6b';
-                        errorText.style.padding = '10px';
-                        errorText.style.textAlign = 'center';
-                        errorText.style.fontSize = '14px';
-                        
-                        // 添加调试信息
-                        const debugText = document.createElement('div');
-                        debugText.textContent = '路径: ' + img.src;
-                        debugText.style.color = '#ff9999';
-                        debugText.style.padding = '5px';
-                        debugText.style.fontSize = '12px';
-                        debugText.style.fontFamily = 'monospace';
-                        
-                        placeholder.appendChild(errorText);
-                        placeholder.appendChild(debugText);
-                        
                         // 尝试备用路径
-                        const altPaths = [
-                            'images/' + filename,  // 相对路径
-                            './images/' + filename,  // 明确相对路径
-                            '/rongronghuajing/images/' + filename,  // GitHub Pages 绝对路径
-                            '../images/' + filename  // 上一级目录
-                        ];
+                        const altPaths = [];
+                        if (BASE_PATH === './') {
+                            // 本地环境，尝试绝对路径
+                            altPaths.push('/rongronghuajing/images/' + filename);
+                        } else {
+                            // GitHub Pages，尝试相对路径
+                            altPaths.push('images/' + filename);
+                            altPaths.push('./images/' + filename);
+                        }
                         
                         let altIndex = 0;
                         const tryAltPath = () => {
                             if (altIndex < altPaths.length) {
-                                const altImg = document.createElement('img');
+                                const altImg = new Image();
                                 altImg.src = altPaths[altIndex];
                                 console.log('尝试备用路径:', altImg.src);
                                 altImg.onload = function() {
                                     console.log('备用路径成功:', altImg.src);
                                     img.src = altImg.src;
-                                    img.onload(); // 触发加载成功
+                                    // 重新触发加载
+                                    img.dispatchEvent(new Event('load'));
                                 };
                                 altImg.onerror = function() {
                                     altIndex++;
                                     tryAltPath();
                                 };
+                            } else {
+                                // 所有路径都失败，显示错误
+                                placeholder.style.borderColor = 'rgba(255, 0, 0, 0.5)';
+                                placeholder.style.background = 'rgba(255, 0, 0, 0.1)';
+                                
+                                const errorText = document.createElement('div');
+                                errorText.textContent = '图片未找到: ' + filename;
+                                errorText.style.color = '#ff6b6b';
+                                errorText.style.padding = '10px';
+                                errorText.style.textAlign = 'center';
+                                errorText.style.fontSize = '14px';
+                                
+                                const debugText = document.createElement('div');
+                                debugText.textContent = '路径: ' + img.src;
+                                debugText.style.color = '#ff9999';
+                                debugText.style.padding = '5px';
+                                debugText.style.fontSize = '12px';
+                                debugText.style.fontFamily = 'monospace';
+                                
+                                placeholder.appendChild(errorText);
+                                placeholder.appendChild(debugText);
                             }
                         };
-                        // 不自动尝试，只在控制台提示
+                        tryAltPath();
                     };
                 }
             });
