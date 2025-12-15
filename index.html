@@ -4690,6 +4690,8 @@
             const hostname = window.location.hostname;
             const path = window.location.pathname;
             
+            console.log('路径检测 - 协议:', protocol, '域名:', hostname, '路径:', path);
+            
             // 如果是本地文件（file:// 协议），使用相对路径
             if (protocol === 'file:') {
                 return './';
@@ -4699,8 +4701,14 @@
             if (hostname.includes('github.io')) {
                 // 检查路径是否包含仓库名（支持多种格式）
                 const pathLower = path.toLowerCase();
+                // 匹配 /rongronghuajing/ 或 /rongronghuajing/index.html 等
                 if (pathLower.includes('/rongronghuajing')) {
-                    // 确保路径以斜杠结尾
+                    // 提取仓库路径部分
+                    const match = path.match(/^(\/rongronghuajing\/?)/i);
+                    if (match) {
+                        // 确保路径以斜杠结尾
+                        return match[1].endsWith('/') ? match[1] : match[1] + '/';
+                    }
                     return '/rongronghuajing/';
                 }
                 // 如果是主域名（username.github.io），使用根路径
@@ -4716,20 +4724,21 @@
         console.log('当前路径:', window.location.pathname);
         console.log('当前域名:', window.location.hostname);
         console.log('检测到的基础路径:', BASE_PATH);
+        console.log('完整URL:', window.location.href);
         
         // 修复 CSS 和 HTML 中的静态图片路径
         function fixStaticImagePaths() {
-            // 修复 body 背景图片 - 直接设置 style
-            if (BASE_PATH !== './') {
-                document.body.style.backgroundImage = `url('${BASE_PATH}images/background.jpg')`;
-                console.log('修复 body 背景图片:', `${BASE_PATH}images/background.jpg`);
-            }
+            // 修复 body 背景图片 - 直接设置 style（无论 BASE_PATH 是什么都修复，确保路径正确）
+            const bgImagePath = BASE_PATH === './' ? 'images/background.jpg' : BASE_PATH + 'images/background.jpg';
+            document.body.style.backgroundImage = `url('${bgImagePath}')`;
+            console.log('修复 body 背景图片:', bgImagePath);
             
             // 修复欢迎页面背景图片
             const welcomeSection = document.querySelector('.welcome-section');
-            if (welcomeSection && BASE_PATH !== './') {
-                welcomeSection.style.backgroundImage = `url('${BASE_PATH}images/welcome-bg.jpg'), linear-gradient(135deg, #1A1612 0%, #2A241F 50%, #1A1612 100%)`;
-                console.log('修复欢迎页面背景图片');
+            if (welcomeSection) {
+                const welcomeBgPath = BASE_PATH === './' ? 'images/welcome-bg.jpg' : BASE_PATH + 'images/welcome-bg.jpg';
+                welcomeSection.style.backgroundImage = `url('${welcomeBgPath}'), linear-gradient(135deg, #1A1612 0%, #2A241F 50%, #1A1612 100%)`;
+                console.log('修复欢迎页面背景图片:', welcomeBgPath);
             }
             
             // 修复静态 img 标签（src 以 images/ 开头的）
@@ -4737,10 +4746,9 @@
             staticImages.forEach(img => {
                 const originalSrc = img.getAttribute('src');
                 if (originalSrc && originalSrc.startsWith('images/')) {
-                    if (BASE_PATH !== './') {
-                        img.src = BASE_PATH + originalSrc;
-                        console.log('修复静态图片路径:', originalSrc, '->', img.src);
-                    }
+                    const fixedSrc = BASE_PATH === './' ? originalSrc : BASE_PATH + originalSrc;
+                    img.src = fixedSrc;
+                    console.log('修复静态图片路径:', originalSrc, '->', fixedSrc);
                 }
             });
             
@@ -4750,10 +4758,9 @@
                 // 修复 poster
                 const poster = video.getAttribute('poster');
                 if (poster && poster.startsWith('images/')) {
-                    if (BASE_PATH !== './') {
-                        video.poster = BASE_PATH + poster;
-                        console.log('修复视频 poster:', poster, '->', video.poster);
-                    }
+                    const fixedPoster = BASE_PATH === './' ? poster : BASE_PATH + poster;
+                    video.poster = fixedPoster;
+                    console.log('修复视频 poster:', poster, '->', fixedPoster);
                 }
                 
                 // 修复 source
@@ -4761,10 +4768,9 @@
                 sources.forEach(source => {
                     const src = source.getAttribute('src');
                     if (src && src.startsWith('images/')) {
-                        if (BASE_PATH !== './') {
-                            source.src = BASE_PATH + src;
-                            console.log('修复视频源:', src, '->', source.src);
-                        }
+                        const fixedSrc = BASE_PATH === './' ? src : BASE_PATH + src;
+                        source.src = fixedSrc;
+                        console.log('修复视频源:', src, '->', fixedSrc);
                     }
                 });
             });
@@ -4917,8 +4923,10 @@
                     };
                     
                     // 图片加载失败时显示错误信息并尝试备用路径
+                    let errorTryCount = 0;
                     img.onerror = function() {
-                        console.error('图片加载失败:');
+                        errorTryCount++;
+                        console.error('图片加载失败 (尝试 ' + errorTryCount + '):');
                         console.error('  - 尝试的路径:', img.src);
                         console.error('  - 标签:', label);
                         console.error('  - 文件名:', filename);
@@ -4930,10 +4938,16 @@
                         if (BASE_PATH === './') {
                             // 本地环境，尝试绝对路径
                             altPaths.push('/rongronghuajing/images/' + filename);
+                            altPaths.push('images/' + filename);
                         } else {
-                            // GitHub Pages，尝试相对路径
+                            // GitHub Pages，尝试多种路径格式
                             altPaths.push('images/' + filename);
                             altPaths.push('./images/' + filename);
+                            altPaths.push('/rongronghuajing/images/' + filename);
+                            // 如果 BASE_PATH 不是预期的，尝试修正
+                            if (BASE_PATH !== '/rongronghuajing/') {
+                                altPaths.push('/rongronghuajing/images/' + filename);
+                            }
                         }
                         
                         let altIndex = 0;
