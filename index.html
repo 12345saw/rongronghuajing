@@ -776,11 +776,7 @@
         }
         
         /* 只在列表项内容中包含特定关键词时显示图标 */
-        .icon-list li:has-text("解锁"),
-        .icon-list li:has-text("获得"),
-        .icon-list li:has-text("触发") {
-            /* 这些可以通过手动在HTML中添加图标 */
-        }
+        /* 注意：这些可以通过手动在HTML中添加图标 */
 
         .subsection p {
             color: #E8DCC8;
@@ -4701,8 +4697,10 @@
             
             // 如果是 GitHub Pages
             if (hostname.includes('github.io')) {
-                // 检查路径是否包含仓库名
-                if (path.includes('/rongronghuajing')) {
+                // 检查路径是否包含仓库名（支持多种格式）
+                const pathLower = path.toLowerCase();
+                if (pathLower.includes('/rongronghuajing')) {
+                    // 确保路径以斜杠结尾
                     return '/rongronghuajing/';
                 }
                 // 如果是主域名（username.github.io），使用根路径
@@ -5079,18 +5077,40 @@
                 video.style.height = 'auto';
                 video.style.borderRadius = '16px';
                 
-                // 尝试加载视频文件
+                // 尝试加载视频文件 - 支持多个可能的文件名
                 const videoSource = document.createElement('source');
-                // 构建完整路径
-                if (BASE_PATH === './') {
-                    videoSource.src = 'images/启发视频.mp4';
-                } else {
-                    videoSource.src = BASE_PATH + 'images/启发视频.mp4';
-                }
-                videoSource.type = 'video/mp4';
-                video.appendChild(videoSource);
+                const possibleVideoNames = ['启发视频.mp4', 'inspiration-video.mp4', '启发视频.MP3'];
+                let currentVideoIndex = 0;
                 
-                console.log('尝试加载视频:', videoSource.src, 'BASE_PATH:', BASE_PATH);
+                function tryLoadVideo(index) {
+                    if (index >= possibleVideoNames.length) {
+                        console.error('所有视频文件尝试失败，请检查 images 文件夹中是否有视频文件');
+                        return;
+                    }
+                    
+                    const videoName = possibleVideoNames[index];
+                    if (BASE_PATH === './') {
+                        videoSource.src = 'images/' + videoName;
+                    } else {
+                        videoSource.src = BASE_PATH + 'images/' + videoName;
+                    }
+                    videoSource.type = videoName.endsWith('.mp4') ? 'video/mp4' : 'video/mpeg';
+                    
+                    // 如果这是第一次尝试，需要先添加 source 元素
+                    if (index === 0) {
+                        video.appendChild(videoSource);
+                    } else {
+                        // 更新现有的 source
+                        video.querySelector('source').src = videoSource.src;
+                        video.querySelector('source').type = videoSource.type;
+                    }
+                    
+                    console.log('尝试加载视频:', videoSource.src, 'BASE_PATH:', BASE_PATH);
+                    video.load();
+                }
+                
+                // 开始尝试加载第一个视频
+                tryLoadVideo(0);
                 
                 video.onloadeddata = function() {
                     console.log('视频加载成功:', videoSource.src);
@@ -5101,19 +5121,14 @@
                 };
                 
                 video.onerror = function() {
-                    // 如果视频加载失败，保持占位符显示
-                    console.error('视频加载失败:', videoSource.src, '完整URL:', video.src);
-                    // 尝试其他可能的文件名
-                    const altNames = ['启发视频.MP3', '启发视频.mp4', 'images/启发视频.mp4'];
-                    let tryIndex = 0;
-                    const tryNext = () => {
-                        if (tryIndex < altNames.length) {
-                            videoSource.src = altNames[tryIndex];
-                            video.load();
-                            tryIndex++;
-                        }
-                    };
-                    tryNext();
+                    // 如果视频加载失败，尝试下一个文件名
+                    console.error('视频加载失败:', videoSource.src);
+                    currentVideoIndex++;
+                    if (currentVideoIndex < possibleVideoNames.length) {
+                        tryLoadVideo(currentVideoIndex);
+                    } else {
+                        console.error('所有视频文件尝试失败');
+                    }
                 };
             }
         }
