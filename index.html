@@ -2,7 +2,9 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="format-detection" content="telephone=no">
     <title>绒绒花境 - 游戏策划文档</title>
     <!-- 引入Google Fonts - 更有设计感的字体 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4697,71 +4699,109 @@
     </div> <!-- 主内容区域结束 -->
 
     <script>
+        // 添加全局错误处理，防止移动端崩溃
+        window.addEventListener('error', function(e) {
+            console.error('页面错误:', e.message, e.filename, e.lineno);
+            // 不阻止默认错误处理，但记录错误
+        });
+        
         // 动态获取基础路径（适配 GitHub Pages 子路径和本地文件）
         function getBasePath() {
-            const protocol = window.location.protocol;
-            const hostname = window.location.hostname;
-            const path = window.location.pathname;
-            const href = window.location.href;
-            
-            // 如果是本地文件（file:// 协议），使用相对路径
-            if (protocol === 'file:') {
+            try {
+                if (typeof window === 'undefined' || !window.location) {
+                    return './';
+                }
+                
+                const protocol = window.location.protocol || '';
+                const hostname = window.location.hostname || '';
+                const path = window.location.pathname || '';
+                const href = window.location.href || '';
+                
+                // 如果是本地文件（file:// 协议），使用相对路径
+                if (protocol === 'file:') {
+                    return './';
+                }
+                
+                // 如果是 GitHub Pages - 多种方式检测以确保兼容性
+                if (hostname && hostname.indexOf('github.io') !== -1) {
+                    // 检查路径或完整URL是否包含仓库名
+                    if (path.indexOf('/rongronghuajing') !== -1 || href.indexOf('/rongronghuajing') !== -1) {
+                        // 确保返回的路径格式正确
+                        return '/rongronghuajing/';
+                    }
+                    // 如果是主域名（username.github.io），使用根路径
+                    return '/';
+                }
+                
+                // 其他情况（本地服务器等），使用相对路径
+                return './';
+            } catch (e) {
+                console.error('获取BASE_PATH失败:', e);
                 return './';
             }
-            
-            // 如果是 GitHub Pages - 多种方式检测以确保兼容性
-            if (hostname && hostname.indexOf('github.io') !== -1) {
-                // 检查路径或完整URL是否包含仓库名
-                if (path.indexOf('/rongronghuajing') !== -1 || href.indexOf('/rongronghuajing') !== -1) {
-                    // 确保返回的路径格式正确
-                    return '/rongronghuajing/';
-                }
-                // 如果是主域名（username.github.io），使用根路径
-                return '/';
-            }
-            
-            // 其他情况（本地服务器等），使用相对路径
-            return './';
         }
         
         // 立即获取BASE_PATH，并在页面加载后再次确认
-        let BASE_PATH = getBasePath();
-        
-        // 双重检查：确保在GitHub Pages上路径正确
-        if (typeof window !== 'undefined' && window.location) {
-            const hostname = window.location.hostname;
-            const path = window.location.pathname;
-            if (hostname && hostname.indexOf('github.io') !== -1) {
-                if ((path && path.indexOf('/rongronghuajing') !== -1) || 
-                    (window.location.href && window.location.href.indexOf('/rongronghuajing') !== -1)) {
-                    if (BASE_PATH !== '/rongronghuajing/') {
-                        BASE_PATH = '/rongronghuajing/';
+        let BASE_PATH = './';
+        try {
+            BASE_PATH = getBasePath();
+            
+            // 双重检查：确保在GitHub Pages上路径正确
+            if (typeof window !== 'undefined' && window.location) {
+                try {
+                    const hostname = window.location.hostname;
+                    const path = window.location.pathname;
+                    if (hostname && hostname.indexOf('github.io') !== -1) {
+                        if ((path && path.indexOf('/rongronghuajing') !== -1) || 
+                            (window.location.href && window.location.href.indexOf('/rongronghuajing') !== -1)) {
+                            if (BASE_PATH !== '/rongronghuajing/') {
+                                BASE_PATH = '/rongronghuajing/';
+                            }
+                        }
                     }
+                } catch (e) {
+                    console.error('BASE_PATH双重检查失败:', e);
                 }
             }
+        } catch (e) {
+            console.error('初始化BASE_PATH失败:', e);
+            BASE_PATH = './';
         }
-        console.log('协议:', window.location.protocol);
-        console.log('当前路径:', window.location.pathname);
-        console.log('当前域名:', window.location.hostname);
-        console.log('检测到的基础路径:', BASE_PATH);
+        // 安全地输出调试信息
+        try {
+            if (typeof console !== 'undefined' && console.log) {
+                console.log('协议:', window.location ? window.location.protocol : 'unknown');
+                console.log('当前路径:', window.location ? window.location.pathname : 'unknown');
+                console.log('当前域名:', window.location ? window.location.hostname : 'unknown');
+                console.log('检测到的基础路径:', BASE_PATH);
+            }
+        } catch (e) {
+            // 忽略控制台错误
+        }
         
         // 修复 CSS 和 HTML 中的静态图片路径
         function fixStaticImagePaths() {
-            // 重新确认BASE_PATH（防止异步问题）
-            const currentBasePath = getBasePath();
-            const finalBasePath = currentBasePath !== './' ? currentBasePath : BASE_PATH;
-            
-            // 修复 body 背景图片 - 无论BASE_PATH是什么都修复，确保路径正确
-            const bgPath = finalBasePath === './' ? 'images/background.jpg' : finalBasePath + 'images/background.jpg';
-            document.body.style.backgroundImage = `url('${bgPath}')`;
-            console.log('修复 body 背景图片:', bgPath, 'BASE_PATH:', finalBasePath);
-            
-            // 修复欢迎页面背景图片
-            const welcomeSection = document.querySelector('.welcome-section');
-            if (welcomeSection) {
-                const welcomeBgPath = finalBasePath === './' ? 'images/welcome-bg.jpg' : finalBasePath + 'images/welcome-bg.jpg';
-                welcomeSection.style.backgroundImage = `url('${welcomeBgPath}'), linear-gradient(135deg, #1A1612 0%, #2A241F 50%, #1A1612 100%)`;
-                console.log('修复欢迎页面背景图片:', welcomeBgPath);
+            try {
+                // 重新确认BASE_PATH（防止异步问题）
+                const currentBasePath = getBasePath();
+                const finalBasePath = currentBasePath !== './' ? currentBasePath : BASE_PATH;
+                
+                // 修复 body 背景图片 - 无论BASE_PATH是什么都修复，确保路径正确
+                if (document.body) {
+                    const bgPath = finalBasePath === './' ? 'images/background.jpg' : finalBasePath + 'images/background.jpg';
+                    document.body.style.backgroundImage = 'url(\'' + bgPath + '\')';
+                    console.log('修复 body 背景图片:', bgPath, 'BASE_PATH:', finalBasePath);
+                }
+                
+                // 修复欢迎页面背景图片
+                const welcomeSection = document.querySelector('.welcome-section');
+                if (welcomeSection) {
+                    const welcomeBgPath = finalBasePath === './' ? 'images/welcome-bg.jpg' : finalBasePath + 'images/welcome-bg.jpg';
+                    welcomeSection.style.backgroundImage = 'url(\'' + welcomeBgPath + '\'), linear-gradient(135deg, #1A1612 0%, #2A241F 50%, #1A1612 100%)';
+                    console.log('修复欢迎页面背景图片:', welcomeBgPath);
+                }
+            } catch (e) {
+                console.error('修复静态图片路径失败:', e);
             }
             
             // 修复静态 img 标签（src 以 images/ 开头的）
@@ -4806,7 +4846,15 @@
         
         // 图片加载功能：根据 data-label 自动加载对应的图片
         function loadImages() {
-            // 创建 data-label 到文件名的映射
+            try {
+                // 检查必要的DOM元素是否存在
+                if (typeof document === 'undefined' || !document.querySelector) {
+                    console.warn('DOM未就绪，延迟加载图片');
+                    setTimeout(loadImages, 500);
+                    return;
+                }
+                
+                // 创建 data-label 到文件名的映射
             // 注意：图片文件应放在 images 文件夹中，文件名使用横线连接（如：游戏概念图-绒绒花境主视觉.jpg）
             const imageMap = {
                 // 游戏概念与世界观
@@ -5176,20 +5224,51 @@
                     tryNext();
                 };
             }
+            } catch (e) {
+                console.error('loadImages函数执行出错:', e);
+            }
         }
 
         // 页面加载完成后执行图片路径修复和加载
         function initImages() {
-            // 先修复静态图片路径
-            fixStaticImagePaths();
-            // 然后加载动态图片
-            loadImages();
+            try {
+                // 先修复静态图片路径
+                fixStaticImagePaths();
+                // 然后加载动态图片
+                loadImages();
+            } catch (e) {
+                console.error('初始化图片失败:', e);
+                // 即使失败也尝试加载图片
+                try {
+                    loadImages();
+                } catch (e2) {
+                    console.error('加载图片失败:', e2);
+                }
+            }
         }
         
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initImages);
-        } else {
-            initImages();
+        // 安全地初始化
+        try {
+            if (typeof document !== 'undefined') {
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initImages);
+                } else {
+                    // 延迟一点执行，确保DOM完全就绪
+                    setTimeout(initImages, 100);
+                }
+            }
+        } catch (e) {
+            console.error('设置图片初始化失败:', e);
+            // 作为最后手段，在window.onload时执行
+            if (typeof window !== 'undefined') {
+                window.addEventListener('load', function() {
+                    try {
+                        initImages();
+                    } catch (e2) {
+                        console.error('延迟初始化图片失败:', e2);
+                    }
+                });
+            }
         }
     </script>
 
