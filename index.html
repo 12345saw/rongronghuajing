@@ -25,7 +25,7 @@
             font-size: 16px;
             /* 主页面背景图片：请将背景图放在 images 文件夹中，命名为 background.jpg 或 background.png */
             /* 支持的图片格式：.jpg, .jpeg, .png, .webp */
-            background-image: url('images/background.jpg');
+            background-image: url('./images/background.jpg');
             background-position: center center;
             background-size: cover;
             background-repeat: no-repeat;
@@ -2533,7 +2533,7 @@
             height: 100vh;
             /* 欢迎页面背景图片：请将背景图放在 images 文件夹中，命名为 welcome-bg.jpg 或 welcome-bg.png */
             /* 如果没有设置欢迎页面背景图，将使用渐变背景 */
-            background-image: url('images/welcome-bg.jpg'), linear-gradient(135deg, #1A1612 0%, #2A241F 50%, #1A1612 100%);
+            background-image: url('./images/welcome-bg.jpg'), linear-gradient(135deg, #1A1612 0%, #2A241F 50%, #1A1612 100%);
             background-position: center center;
             background-size: cover;
             background-repeat: no-repeat;
@@ -3168,9 +3168,9 @@
                     4. 替换下面的占位符代码为实际视频代码：
                     
                     <div class="video-container">
-                        <video controls poster="images/video-poster.jpg">
-                            <source src="images/inspiration-video.mp4" type="video/mp4">
-                            <source src="images/inspiration-video.webm" type="video/webm">
+                        <video controls poster="./images/video-poster.jpg">
+                            <source src="./images/inspiration-video.mp4" type="video/mp4">
+                            <source src="./images/inspiration-video.webm" type="video/webm">
                             您的浏览器不支持视频播放。
                         </video>
                     </div>
@@ -3716,7 +3716,7 @@
                     <div class="feature-card" style="margin-top: 30px; contain: layout style paint; transform: translateZ(0);">
                         <h4 style="text-align: center; margin-bottom: 25px;">🔄 场景系统与快速切换</h4>
                         <div style="display: flex; justify-content: center; margin-bottom: 25px;">
-                            <img src="images/按钮.jpg" alt="按钮" style="width: 300px; height: 300px; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);">
+                            <img src="./images/按钮.jpg" alt="按钮" style="width: 300px; height: 300px; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);">
                         </div>
                         <div class="highlight-box">
                             <p class="text-concise" style="text-align: center; margin: 0;">右下角快捷按钮，随时在室内外场景间自由切换</p>
@@ -4688,6 +4688,37 @@
     </div> <!-- 主内容区域结束 -->
 
     <script>
+        // 动态获取基础路径（适配 GitHub Pages 子路径和本地文件）
+        function getBasePath() {
+            const protocol = window.location.protocol;
+            const hostname = window.location.hostname;
+            const path = window.location.pathname;
+            
+            // 如果是本地文件（file:// 协议），使用相对路径
+            if (protocol === 'file:') {
+                return './';
+            }
+            
+            // 如果是 GitHub Pages
+            if (hostname.includes('github.io')) {
+                // 检查路径是否包含仓库名
+                if (path.includes('/rongronghuajing')) {
+                    return '/rongronghuajing/';
+                }
+                // 如果是主域名（username.github.io），使用根路径
+                return '/';
+            }
+            
+            // 其他情况（本地服务器等），使用相对路径
+            return './';
+        }
+        
+        const BASE_PATH = getBasePath();
+        console.log('协议:', window.location.protocol);
+        console.log('当前路径:', window.location.pathname);
+        console.log('当前域名:', window.location.hostname);
+        console.log('检测到的基础路径:', BASE_PATH);
+        
         // 图片加载功能：根据 data-label 自动加载对应的图片
         function loadImages() {
             // 创建 data-label 到文件名的映射
@@ -4757,8 +4788,20 @@
                 // 如果找到了文件名，创建图片元素
                 if (filename) {
                     const img = document.createElement('img');
-                    img.src = 'images/' + filename;
+                    // 构建完整路径
+                    // 如果 BASE_PATH 是 './'，直接使用相对路径
+                    if (BASE_PATH === './') {
+                        img.src = 'images/' + filename;
+                    } else {
+                        // GitHub Pages 使用绝对路径
+                        img.src = BASE_PATH + 'images/' + filename;
+                    }
                     img.alt = label;
+                    console.log('尝试加载图片:');
+                    console.log('  - 标签:', label);
+                    console.log('  - 文件名:', filename);
+                    console.log('  - 完整路径:', img.src);
+                    console.log('  - BASE_PATH:', BASE_PATH);
                     img.style.width = '100%';
                     img.style.height = 'auto';
                     img.style.borderRadius = '16px';
@@ -4824,9 +4867,61 @@
                     
                     // 图片加载失败时显示错误信息
                     img.onerror = function() {
-                        console.warn('图片加载失败: images/' + filename);
+                        console.error('图片加载失败:');
+                        console.error('  - 尝试的路径:', img.src);
+                        console.error('  - 标签:', label);
+                        console.error('  - 文件名:', filename);
+                        console.error('  - BASE_PATH:', BASE_PATH);
+                        console.error('  - 当前页面URL:', window.location.href);
+                        
                         placeholder.style.borderColor = 'rgba(255, 0, 0, 0.5)';
-                        placeholder.querySelector('::after')?.setAttribute('content', '图片未找到: ' + filename);
+                        placeholder.style.background = 'rgba(255, 0, 0, 0.1)';
+                        
+                        // 显示错误信息
+                        const errorText = document.createElement('div');
+                        errorText.textContent = '图片未找到: ' + filename;
+                        errorText.style.color = '#ff6b6b';
+                        errorText.style.padding = '10px';
+                        errorText.style.textAlign = 'center';
+                        errorText.style.fontSize = '14px';
+                        
+                        // 添加调试信息
+                        const debugText = document.createElement('div');
+                        debugText.textContent = '路径: ' + img.src;
+                        debugText.style.color = '#ff9999';
+                        debugText.style.padding = '5px';
+                        debugText.style.fontSize = '12px';
+                        debugText.style.fontFamily = 'monospace';
+                        
+                        placeholder.appendChild(errorText);
+                        placeholder.appendChild(debugText);
+                        
+                        // 尝试备用路径
+                        const altPaths = [
+                            'images/' + filename,  // 相对路径
+                            './images/' + filename,  // 明确相对路径
+                            '/rongronghuajing/images/' + filename,  // GitHub Pages 绝对路径
+                            '../images/' + filename  // 上一级目录
+                        ];
+                        
+                        let altIndex = 0;
+                        const tryAltPath = () => {
+                            if (altIndex < altPaths.length) {
+                                const altImg = document.createElement('img');
+                                altImg.src = altPaths[altIndex];
+                                console.log('尝试备用路径:', altImg.src);
+                                altImg.onload = function() {
+                                    console.log('备用路径成功:', altImg.src);
+                                    img.src = altImg.src;
+                                    img.onload(); // 触发加载成功
+                                };
+                                altImg.onerror = function() {
+                                    altIndex++;
+                                    tryAltPath();
+                                };
+                            }
+                        };
+                        // 不自动尝试，只在控制台提示
                     };
                 }
             });
@@ -4856,8 +4951,14 @@
                 // 如果找到了文件名，创建图片元素
                 if (filename) {
                     const img = document.createElement('img');
-                    img.src = 'images/' + filename;
+                    // 构建完整路径
+                    if (BASE_PATH === './') {
+                        img.src = 'images/' + filename;
+                    } else {
+                        img.src = BASE_PATH + 'images/' + filename;
+                    }
                     img.alt = characterName;
+                    console.log('尝试加载角色图片:', img.src, '角色名:', characterName, '文件名:', filename);
                     
                     // 图片加载成功时替换占位符
                     img.onload = function() {
@@ -4924,11 +5025,19 @@
                 
                 // 尝试加载视频文件
                 const videoSource = document.createElement('source');
-                videoSource.src = 'images/启发视频.mp4';
+                // 构建完整路径
+                if (BASE_PATH === './') {
+                    videoSource.src = 'images/启发视频.mp4';
+                } else {
+                    videoSource.src = BASE_PATH + 'images/启发视频.mp4';
+                }
                 videoSource.type = 'video/mp4';
                 video.appendChild(videoSource);
                 
+                console.log('尝试加载视频:', videoSource.src, 'BASE_PATH:', BASE_PATH);
+                
                 video.onloadeddata = function() {
+                    console.log('视频加载成功:', videoSource.src);
                     videoContainer.appendChild(video);
                     videoPlaceholder.style.display = 'none';
                     videoPlaceholder.parentNode.insertBefore(videoContainer, videoPlaceholder);
@@ -4937,7 +5046,18 @@
                 
                 video.onerror = function() {
                     // 如果视频加载失败，保持占位符显示
-                    console.warn('视频加载失败: images/启发视频.mp4');
+                    console.error('视频加载失败:', videoSource.src, '完整URL:', video.src);
+                    // 尝试其他可能的文件名
+                    const altNames = ['启发视频.MP3', '启发视频.mp4', 'images/启发视频.mp4'];
+                    let tryIndex = 0;
+                    const tryNext = () => {
+                        if (tryIndex < altNames.length) {
+                            videoSource.src = altNames[tryIndex];
+                            video.load();
+                            tryIndex++;
+                        }
+                    };
+                    tryNext();
                 };
             }
         }
