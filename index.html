@@ -2574,6 +2574,14 @@
             transform: translateY(-30px);
             pointer-events: none;
         }
+        
+        /* iOS Safari兼容：确保欢迎页面初始可见 */
+        @supports (-webkit-touch-callout: none) {
+            .welcome-page {
+                visibility: visible !important;
+                opacity: 1 !important;
+            }
+        }
 
         .welcome-page::before {
             content: '';
@@ -4767,6 +4775,26 @@
     </div> <!-- 主内容区域结束 -->
 
     <script>
+        // iOS关键修复：立即显示页面内容，防止白屏
+        (function() {
+            try {
+                // 确保body可见
+                if (document.body) {
+                    document.body.style.visibility = 'visible';
+                    document.body.style.opacity = '1';
+                }
+                // 确保欢迎页面可见
+                var welcomePage = document.getElementById('welcomePage');
+                if (welcomePage) {
+                    welcomePage.style.visibility = 'visible';
+                    welcomePage.style.opacity = '1';
+                    welcomePage.style.display = 'flex';
+                }
+            } catch(e) {
+                // 忽略错误
+            }
+        })();
+        
         // 检测微信浏览器（仅用于兼容性处理，不显示提示）
         var isWeChat = /MicroMessenger/i.test(navigator.userAgent);
         
@@ -4810,14 +4838,42 @@
             }
         };
         
-        // 添加全局错误处理，防止移动端崩溃（微信浏览器特别重要）
+        // 添加全局错误处理，防止移动端崩溃（iOS特别重要）
         window.addEventListener('error', function(e) {
             safeError('页面错误:', e.message, e.filename, e.lineno);
+            
+            // iOS Safari：确保页面内容可见，即使有错误
+            if (isIOS) {
+                try {
+                    if (document.body) {
+                        document.body.style.visibility = 'visible';
+                        document.body.style.opacity = '1';
+                    }
+                    var welcomePage = document.getElementById('welcomePage');
+                    if (welcomePage) {
+                        welcomePage.style.visibility = 'visible';
+                        welcomePage.style.opacity = '1';
+                    }
+                } catch(err) {
+                    // 忽略
+                }
+            }
+            
             // 微信浏览器中，某些错误可能导致页面无法显示，尝试恢复
             if (isWeChat && e.message && e.message.indexOf('Script error') !== -1) {
                 // 微信浏览器的跨域脚本错误，忽略
                 return true;
             }
+            
+            // iOS Safari：忽略某些非关键错误
+            if (isIOS && e.message && (
+                e.message.indexOf('Script error') !== -1 ||
+                e.message.indexOf('NetworkError') !== -1 ||
+                e.message.indexOf('Failed to fetch') !== -1
+            )) {
+                return true; // 忽略这些错误，不影响页面显示
+            }
+            
             // 不阻止默认错误处理，但记录错误
             return true; // 允许默认错误处理继续
         }, true); // 使用捕获阶段
