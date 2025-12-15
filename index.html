@@ -135,6 +135,19 @@
         a:hover, button:hover, .feature-card:hover, .level-card:hover {
             cursor: none;
         }
+        
+        /* 欢迎页面：始终显示鼠标光标 */
+        .welcome-page,
+        .welcome-page *,
+        .welcome-page a:hover,
+        .welcome-page button:hover {
+            cursor: default !important;
+        }
+        
+        .welcome-button,
+        .welcome-button:hover {
+            cursor: pointer !important;
+        }
 
         /* 花瓣飘落效果 */
         .falling-petal {
@@ -2617,7 +2630,12 @@
 
         /* 确保欢迎页面的所有交互元素都显示正确的光标 */
         .welcome-page * {
-            cursor: inherit;
+            cursor: default !important;
+        }
+        
+        .welcome-page button,
+        .welcome-page .welcome-button {
+            cursor: pointer !important;
         }
 
         @keyframes welcomeFadeIn {
@@ -6318,25 +6336,57 @@
             }, 10000);
         }
 
-        // 进入文档按钮点击事件
+        // 进入文档按钮点击事件（支持多种触发方式）
         if (enterButton) {
-            enterButton.addEventListener('click', () => {
+            // 统一的进入文档处理函数
+            function handleEnterDocument() {
                 // 显示过渡层
                 if (pageTransition) {
                     pageTransition.classList.add('active');
                 }
                 
                 // 延迟隐藏欢迎页面
-                setTimeout(() => {
+                setTimeout(function() {
                     if (welcomePage) {
                         welcomePage.classList.add('hidden');
                     }
                     // 更新光标显示
-                    updateCursorVisibility();
+                    if (typeof updateCursorVisibility === 'function') {
+                        updateCursorVisibility();
+                    }
                 }, 300);
-
-                // 延迟显示主内容
-                setTimeout(() => {
+            }
+            
+            // 鼠标点击
+            enterButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleEnterDocument();
+            });
+            
+            // 触摸事件（移动端）
+            enterButton.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleEnterDocument();
+            });
+            
+            // 键盘事件（回车键和空格键）
+            enterButton.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleEnterDocument();
+                }
+            });
+            
+            // 确保按钮可访问
+            enterButton.setAttribute('tabindex', '0');
+            enterButton.setAttribute('role', 'button');
+            enterButton.setAttribute('aria-label', '进入文档');
+            
+            // 延迟显示主内容（在handleEnterDocument函数中）
+            function showMainContent() {
+                setTimeout(function() {
                     if (mainContent) {
                         mainContent.classList.add('visible');
                     }
@@ -6350,7 +6400,14 @@
                         behavior: 'smooth'
                     });
                 }, 800);
-            });
+            }
+            
+            // 修改handleEnterDocument函数，添加显示主内容的逻辑
+            var originalHandleEnterDocument = handleEnterDocument;
+            handleEnterDocument = function() {
+                originalHandleEnterDocument();
+                showMainContent();
+            };
         }
 
         // 检查是否已经进入过（使用localStorage）
