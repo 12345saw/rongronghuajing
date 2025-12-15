@@ -25,7 +25,7 @@
             font-size: 16px;
             /* 主页面背景图片：请将背景图放在 images 文件夹中，命名为 background.jpg 或 background.png */
             /* 支持的图片格式：.jpg, .jpeg, .png, .webp */
-            background-image: url('./images/background.jpg');
+            background-image: url('images/background.jpg');
             background-position: center center;
             background-size: cover;
             background-repeat: no-repeat;
@@ -2533,7 +2533,7 @@
             height: 100vh;
             /* 欢迎页面背景图片：请将背景图放在 images 文件夹中，命名为 welcome-bg.jpg 或 welcome-bg.png */
             /* 如果没有设置欢迎页面背景图，将使用渐变背景 */
-            background-image: url('./images/welcome-bg.jpg'), linear-gradient(135deg, #1A1612 0%, #2A241F 50%, #1A1612 100%);
+            background-image: url('images/welcome-bg.jpg'), linear-gradient(135deg, #1A1612 0%, #2A241F 50%, #1A1612 100%);
             background-position: center center;
             background-size: cover;
             background-repeat: no-repeat;
@@ -3168,9 +3168,9 @@
                     4. 替换下面的占位符代码为实际视频代码：
                     
                     <div class="video-container">
-                        <video controls poster="./images/video-poster.jpg">
-                            <source src="./images/inspiration-video.mp4" type="video/mp4">
-                            <source src="./images/inspiration-video.webm" type="video/webm">
+                        <video controls poster="images/video-poster.jpg">
+                            <source src="images/inspiration-video.mp4" type="video/mp4">
+                            <source src="images/inspiration-video.webm" type="video/webm">
                             您的浏览器不支持视频播放。
                         </video>
                     </div>
@@ -3716,7 +3716,7 @@
                     <div class="feature-card" style="margin-top: 30px; contain: layout style paint; transform: translateZ(0);">
                         <h4 style="text-align: center; margin-bottom: 25px;">🔄 场景系统与快速切换</h4>
                         <div style="display: flex; justify-content: center; margin-bottom: 25px;">
-                            <img src="./images/按钮.jpg" alt="按钮" style="width: 300px; height: 300px; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);">
+                            <img src="images/按钮.jpg" alt="按钮" style="width: 300px; height: 300px; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);">
                         </div>
                         <div class="highlight-box">
                             <p class="text-concise" style="text-align: center; margin: 0;">右下角快捷按钮，随时在室内外场景间自由切换</p>
@@ -4719,6 +4719,59 @@
         console.log('当前域名:', window.location.hostname);
         console.log('检测到的基础路径:', BASE_PATH);
         
+        // 修复 CSS 和 HTML 中的静态图片路径
+        function fixStaticImagePaths() {
+            // 修复 body 背景图片 - 直接设置 style
+            if (BASE_PATH !== './') {
+                document.body.style.backgroundImage = `url('${BASE_PATH}images/background.jpg')`;
+                console.log('修复 body 背景图片:', `${BASE_PATH}images/background.jpg`);
+            }
+            
+            // 修复欢迎页面背景图片
+            const welcomeSection = document.querySelector('.welcome-section');
+            if (welcomeSection && BASE_PATH !== './') {
+                welcomeSection.style.backgroundImage = `url('${BASE_PATH}images/welcome-bg.jpg'), linear-gradient(135deg, #1A1612 0%, #2A241F 50%, #1A1612 100%)`;
+                console.log('修复欢迎页面背景图片');
+            }
+            
+            // 修复静态 img 标签（src 以 images/ 开头的）
+            const staticImages = document.querySelectorAll('img');
+            staticImages.forEach(img => {
+                const originalSrc = img.getAttribute('src');
+                if (originalSrc && originalSrc.startsWith('images/')) {
+                    if (BASE_PATH !== './') {
+                        img.src = BASE_PATH + originalSrc;
+                        console.log('修复静态图片路径:', originalSrc, '->', img.src);
+                    }
+                }
+            });
+            
+            // 修复 video 标签
+            const videos = document.querySelectorAll('video');
+            videos.forEach(video => {
+                // 修复 poster
+                const poster = video.getAttribute('poster');
+                if (poster && poster.startsWith('images/')) {
+                    if (BASE_PATH !== './') {
+                        video.poster = BASE_PATH + poster;
+                        console.log('修复视频 poster:', poster, '->', video.poster);
+                    }
+                }
+                
+                // 修复 source
+                const sources = video.querySelectorAll('source');
+                sources.forEach(source => {
+                    const src = source.getAttribute('src');
+                    if (src && src.startsWith('images/')) {
+                        if (BASE_PATH !== './') {
+                            source.src = BASE_PATH + src;
+                            console.log('修复视频源:', src, '->', source.src);
+                        }
+                    }
+                });
+            });
+        }
+        
         // 图片加载功能：根据 data-label 自动加载对应的图片
         function loadImages() {
             // 创建 data-label 到文件名的映射
@@ -5062,11 +5115,18 @@
             }
         }
 
-        // 页面加载完成后执行图片加载
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', loadImages);
-        } else {
+        // 页面加载完成后执行图片路径修复和加载
+        function initImages() {
+            // 先修复静态图片路径
+            fixStaticImagePaths();
+            // 然后加载动态图片
             loadImages();
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initImages);
+        } else {
+            initImages();
         }
     </script>
 
