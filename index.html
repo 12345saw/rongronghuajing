@@ -4689,42 +4689,53 @@
             const protocol = window.location.protocol;
             const hostname = window.location.hostname;
             const path = window.location.pathname;
+            const href = window.location.href;
             
-            console.log('路径检测 - 协议:', protocol, '域名:', hostname, '路径:', path);
+            console.log('=== 路径检测开始 ===');
+            console.log('协议:', protocol);
+            console.log('域名:', hostname);
+            console.log('路径:', path);
+            console.log('完整URL:', href);
             
             // 如果是本地文件（file:// 协议），使用相对路径
             if (protocol === 'file:') {
+                console.log('检测到本地文件，使用相对路径');
                 return './';
             }
             
-            // 如果是 GitHub Pages
+            // 强制检测 GitHub Pages - 如果域名包含 github.io，路径包含 rongronghuajing
             if (hostname.includes('github.io')) {
-                // 检查路径是否包含仓库名（支持多种格式）
-                const pathLower = path.toLowerCase();
-                // 匹配 /rongronghuajing/ 或 /rongronghuajing/index.html 等
-                if (pathLower.includes('/rongronghuajing')) {
-                    // 提取仓库路径部分
-                    const match = path.match(/^(\/rongronghuajing\/?)/i);
-                    if (match) {
-                        // 确保路径以斜杠结尾
-                        return match[1].endsWith('/') ? match[1] : match[1] + '/';
-                    }
+                console.log('检测到 GitHub Pages 域名');
+                // 多种方式检测仓库路径
+                if (path.includes('/rongronghuajing') || href.includes('/rongronghuajing')) {
+                    console.log('检测到仓库路径 /rongronghuajing');
+                    // 确保返回 /rongronghuajing/
                     return '/rongronghuajing/';
                 }
                 // 如果是主域名（username.github.io），使用根路径
+                console.log('GitHub Pages 主域名，使用根路径');
                 return '/';
             }
             
             // 其他情况（本地服务器等），使用相对路径
+            console.log('其他情况，使用相对路径');
             return './';
         }
         
-        const BASE_PATH = getBasePath();
-        console.log('协议:', window.location.protocol);
-        console.log('当前路径:', window.location.pathname);
-        console.log('当前域名:', window.location.hostname);
-        console.log('检测到的基础路径:', BASE_PATH);
-        console.log('完整URL:', window.location.href);
+        // 立即获取并设置 BASE_PATH
+        let BASE_PATH = getBasePath();
+        
+        // 双重检查：如果是在 GitHub Pages 但 BASE_PATH 不正确，强制修正
+        if (window.location.hostname.includes('github.io') && 
+            (window.location.pathname.includes('/rongronghuajing') || window.location.href.includes('/rongronghuajing')) &&
+            BASE_PATH !== '/rongronghuajing/') {
+            console.warn('BASE_PATH 检测可能不正确，强制设置为 /rongronghuajing/');
+            BASE_PATH = '/rongronghuajing/';
+        }
+        
+        console.log('=== 最终 BASE_PATH:', BASE_PATH, '===');
+        // BASE_PATH 已在上面设置，这里只是确认
+        console.log('确认 BASE_PATH:', BASE_PATH);
         
         // 修复 CSS 和 HTML 中的静态图片路径
         function fixStaticImagePaths() {
@@ -4845,20 +4856,23 @@
                 // 如果找到了文件名，创建图片元素
                 if (filename) {
                     const img = document.createElement('img');
-                    // 构建完整路径
-                    // 如果 BASE_PATH 是 './'，直接使用相对路径
+                    // 构建完整路径 - 强制使用正确的 BASE_PATH
+                    let imagePath;
                     if (BASE_PATH === './') {
-                        img.src = 'images/' + filename;
+                        imagePath = 'images/' + filename;
                     } else {
-                        // GitHub Pages 使用绝对路径
-                        img.src = BASE_PATH + 'images/' + filename;
+                        // 确保 BASE_PATH 以 / 开头和结尾
+                        const base = BASE_PATH.endsWith('/') ? BASE_PATH : BASE_PATH + '/';
+                        imagePath = base + 'images/' + filename;
                     }
+                    img.src = imagePath;
                     img.alt = label;
-                    console.log('尝试加载图片:');
+                    console.log('=== 加载图片 ===');
                     console.log('  - 标签:', label);
                     console.log('  - 文件名:', filename);
-                    console.log('  - 完整路径:', img.src);
                     console.log('  - BASE_PATH:', BASE_PATH);
+                    console.log('  - 完整路径:', imagePath);
+                    console.log('  - 当前URL:', window.location.href);
                     img.style.width = '100%';
                     img.style.height = 'auto';
                     img.style.borderRadius = '16px';
@@ -5149,17 +5163,61 @@
 
         // 页面加载完成后执行图片路径修复和加载
         function initImages() {
+            console.log('=== 开始初始化图片 ===');
+            console.log('BASE_PATH:', BASE_PATH);
             // 先修复静态图片路径
             fixStaticImagePaths();
             // 然后加载动态图片
             loadImages();
+            console.log('=== 图片初始化完成 ===');
         }
         
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initImages);
-        } else {
+        // 立即执行一次（如果 DOM 已加载）
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            console.log('DOM 已就绪，立即执行图片初始化');
             initImages();
         }
+        
+        // 也监听 DOMContentLoaded 事件
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded 事件触发，执行图片初始化');
+            initImages();
+        });
+        
+        // 作为备用，也监听 window.onload
+        window.addEventListener('load', function() {
+            console.log('window.onload 事件触发，再次检查图片');
+            
+            // 再次确认 BASE_PATH（防止异步问题）
+            const currentBasePath = getBasePath();
+            if (currentBasePath !== BASE_PATH) {
+                console.warn('BASE_PATH 发生变化，从', BASE_PATH, '变为', currentBasePath);
+                BASE_PATH = currentBasePath;
+                // 重新修复所有路径
+                fixStaticImagePaths();
+            }
+            
+            // 检查是否有未加载的图片
+            const placeholders = document.querySelectorAll('.image-placeholder[data-label]');
+            const unloadedPlaceholders = Array.from(placeholders).filter(p => !p.querySelector('img'));
+            if (unloadedPlaceholders.length > 0) {
+                console.log('发现', unloadedPlaceholders.length, '个未加载的图片占位符，重新加载');
+                loadImages();
+            }
+            
+            // 强制修复所有图片的 src 属性
+            const allImages = document.querySelectorAll('img[src*="images/"]');
+            allImages.forEach(img => {
+                const src = img.getAttribute('src') || img.src;
+                if (src && !src.startsWith('http') && !src.startsWith('/rongronghuajing/') && BASE_PATH !== './') {
+                    const fixedSrc = BASE_PATH + (src.startsWith('images/') ? src : 'images/' + src.split('/').pop());
+                    if (fixedSrc !== src) {
+                        console.log('强制修复图片路径:', src, '->', fixedSrc);
+                        img.src = fixedSrc;
+                    }
+                }
+            });
+        });
     </script>
 
     <script>
