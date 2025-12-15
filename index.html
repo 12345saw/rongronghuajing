@@ -5158,151 +5158,185 @@
                                 }
                             };
                             tryAltPath();
-                        } catch (e) {
-                            if (typeof console !== 'undefined' && console.error) {
-                                console.error('处理图片占位符失败:', e);
-                            }
-                        }
+                        };
+                    }
+                } catch (e) {
+                    if (typeof console !== 'undefined' && console.error) {
+                        console.error('处理图片占位符失败:', e);
                     }
                 }
             }
 
             // 处理角色图片（.character-image）
-            const characterImages = document.querySelectorAll('.character-image');
-            characterImages.forEach(characterImage => {
-                // 从相邻的 character-card 中获取角色名称
-                const characterCard = characterImage.parentElement?.querySelector('.character-card h4');
-                if (!characterCard) return;
-                
-                const characterName = characterCard.textContent.trim();
-                let filename = imageMap[characterName];
-                
-                // 如果没有找到精确匹配，尝试模糊匹配
-                if (!filename) {
-                    const normalizedName = characterName.replace(/\s+/g, '').replace(/[-－]/g, '');
-                    for (const [key, value] of Object.entries(imageMap)) {
-                        const normalizedKey = key.replace(/\s+/g, '').replace(/[-－]/g, '');
-                        if (normalizedName === normalizedKey || normalizedName.includes(normalizedKey) || normalizedKey.includes(normalizedName)) {
-                            filename = value;
-                            break;
+            try {
+                var characterImages = document.querySelectorAll('.character-image');
+                for (var ci = 0; ci < characterImages.length; ci++) {
+                    try {
+                        var characterImage = characterImages[ci];
+                        // 从相邻的 character-card 中获取角色名称
+                        var characterCard = null;
+                        if (characterImage.parentElement) {
+                            var cardElement = characterImage.parentElement.querySelector('.character-card h4');
+                            if (cardElement) {
+                                characterCard = cardElement;
+                            }
                         }
-                    }
-                }
+                        if (!characterCard) continue;
+                        
+                        var characterName = characterCard.textContent.trim();
+                        var filename = imageMap[characterName];
+                        
+                        // 如果没有找到精确匹配，尝试模糊匹配
+                        if (!filename) {
+                            var normalizedName = characterName.replace(/\s+/g, '').replace(/[-－]/g, '');
+                            for (var key in imageMap) {
+                                if (imageMap.hasOwnProperty(key)) {
+                                    var normalizedKey = key.replace(/\s+/g, '').replace(/[-－]/g, '');
+                                    if (normalizedName === normalizedKey || normalizedName.indexOf(normalizedKey) !== -1 || normalizedKey.indexOf(normalizedName) !== -1) {
+                                        filename = imageMap[key];
+                                        break;
+                                    }
+                                }
+                            }
+                        }
 
-                // 如果找到了文件名，创建图片元素
-                if (filename) {
-                    const img = document.createElement('img');
-                    // 构建完整路径
-                    if (BASE_PATH === './') {
-                        img.src = 'images/' + filename;
-                    } else {
-                        img.src = BASE_PATH + 'images/' + filename;
-                    }
-                    img.alt = characterName;
-                    console.log('尝试加载角色图片:', img.src, '角色名:', characterName, '文件名:', filename);
-                    
-                    // 图片加载成功时替换占位符
-                    img.onload = function() {
-                        // 清除占位符内容，但保留::before伪元素
-                        const placeholder = characterImage.querySelector('::before');
-                        characterImage.style.background = 'linear-gradient(135deg, rgba(201, 168, 130, 0.08) 0%, rgba(255, 192, 193, 0.05) 100%)';
-                        characterImage.style.border = '2px dashed rgba(255, 182, 193, 0.2)';
-                        
-                        // 清除所有子元素（包括可能的文本节点）
-                        while (characterImage.firstChild) {
-                            characterImage.removeChild(characterImage.firstChild);
-                        }
-                        
-                        // 添加图片
-                        characterImage.appendChild(img);
-                        
-                        // 确保图片样式正确应用（CSS已经定义了，这里确保覆盖）
-                        img.style.maxWidth = '100%';
-                        img.style.maxHeight = '600px';
-                        img.style.width = 'auto';
-                        img.style.height = 'auto';
-                        img.style.objectFit = 'contain';
-                        img.style.objectPosition = 'center';
-                        img.style.borderRadius = '12px';
-                        img.style.display = 'block';
-                        img.style.margin = '0 auto';
-                        
-                        // 让容器根据图片大小自适应，边框紧贴图片
-                        const imgHeight = img.offsetHeight;
-                        if (imgHeight > 0) {
-                            characterImage.style.height = 'auto';
-                            characterImage.style.minHeight = 'auto';
-                            characterImage.style.display = 'flex';
-                            characterImage.style.width = '100%';
-                            characterImage.style.maxWidth = '100%';
-                            characterImage.style.padding = '15px';
+                        // 如果找到了文件名，创建图片元素
+                        if (filename) {
+                            var img = document.createElement('img');
+                            // 构建完整路径
+                            if (BASE_PATH === './') {
+                                img.src = 'images/' + filename;
+                            } else {
+                                img.src = BASE_PATH + 'images/' + filename;
+                            }
+                            img.alt = characterName;
+                            if (typeof console !== 'undefined' && console.log) {
+                                console.log('尝试加载角色图片:', img.src, '角色名:', characterName, '文件名:', filename);
+                            }
                             
-                            // 给图片添加边框，紧贴图片
-                            img.style.border = '2px solid rgba(255, 182, 193, 0.4)';
-                            img.style.padding = '4px';
-                            img.style.background = 'rgba(255, 255, 255, 0.05)';
-                            img.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.2)';
+                            // 图片加载成功时替换占位符
+                            img.onload = function() {
+                                characterImage.style.background = 'linear-gradient(135deg, rgba(201, 168, 130, 0.08) 0%, rgba(255, 192, 193, 0.05) 100%)';
+                                characterImage.style.border = '2px dashed rgba(255, 182, 193, 0.2)';
+                                
+                                // 清除所有子元素（包括可能的文本节点）
+                                while (characterImage.firstChild) {
+                                    characterImage.removeChild(characterImage.firstChild);
+                                }
+                                
+                                // 添加图片
+                                characterImage.appendChild(img);
+                                
+                                // 确保图片样式正确应用
+                                img.style.maxWidth = '100%';
+                                img.style.maxHeight = '600px';
+                                img.style.width = 'auto';
+                                img.style.height = 'auto';
+                                img.style.objectFit = 'contain';
+                                img.style.objectPosition = 'center';
+                                img.style.borderRadius = '12px';
+                                img.style.display = 'block';
+                                img.style.margin = '0 auto';
+                                
+                                // 让容器根据图片大小自适应
+                                var imgHeight = img.offsetHeight;
+                                if (imgHeight > 0) {
+                                    characterImage.style.height = 'auto';
+                                    characterImage.style.minHeight = 'auto';
+                                    characterImage.style.display = 'flex';
+                                    characterImage.style.width = '100%';
+                                    characterImage.style.maxWidth = '100%';
+                                    characterImage.style.padding = '15px';
+                                    
+                                    // 给图片添加边框
+                                    img.style.border = '2px solid rgba(255, 182, 193, 0.4)';
+                                    img.style.padding = '4px';
+                                    img.style.background = 'rgba(255, 255, 255, 0.05)';
+                                    img.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.2)';
+                                }
+                            };
+                            
+                            // 图片加载失败时静默处理
+                            img.onerror = function() {
+                                // 静默处理图片加载失败
+                            };
                         }
-                    };
-                    
-                    // 图片加载失败时静默处理
-                    img.onerror = function() {
-                        // 静默处理图片加载失败
-                    };
+                    } catch (e) {
+                        // 忽略单个角色图片的错误
+                    }
                 }
-            });
+            } catch (e) {
+                if (typeof console !== 'undefined' && console.error) {
+                    console.error('处理角色图片失败:', e);
+                }
+            }
 
             // 处理视频占位符
-            const videoPlaceholder = document.querySelector('.video-placeholder');
-            if (videoPlaceholder) {
-                const videoContainer = document.createElement('div');
-                videoContainer.className = 'video-container';
-                
-                const video = document.createElement('video');
-                video.controls = true;
-                video.style.width = '100%';
-                video.style.height = 'auto';
-                video.style.borderRadius = '16px';
-                
-                // 尝试加载视频文件
-                const videoSource = document.createElement('source');
-                // 构建完整路径
-                if (BASE_PATH === './') {
-                    videoSource.src = 'images/启发视频.mp4';
-                } else {
-                    videoSource.src = BASE_PATH + 'images/启发视频.mp4';
-                }
-                videoSource.type = 'video/mp4';
-                video.appendChild(videoSource);
-                
-                console.log('尝试加载视频:', videoSource.src, 'BASE_PATH:', BASE_PATH);
-                
-                video.onloadeddata = function() {
-                    console.log('视频加载成功:', videoSource.src);
-                    videoContainer.appendChild(video);
-                    videoPlaceholder.style.display = 'none';
-                    videoPlaceholder.parentNode.insertBefore(videoContainer, videoPlaceholder);
-                    videoPlaceholder.remove();
-                };
-                
-                video.onerror = function() {
-                    // 如果视频加载失败，保持占位符显示
-                    console.error('视频加载失败:', videoSource.src, '完整URL:', video.src);
-                    // 尝试其他可能的文件名
-                    const altNames = ['启发视频.MP3', '启发视频.mp4', 'images/启发视频.mp4'];
-                    let tryIndex = 0;
-                    const tryNext = () => {
-                        if (tryIndex < altNames.length) {
-                            videoSource.src = altNames[tryIndex];
-                            video.load();
-                            tryIndex++;
+            try {
+                var videoPlaceholder = document.querySelector('.video-placeholder');
+                if (videoPlaceholder) {
+                    var videoContainer = document.createElement('div');
+                    videoContainer.className = 'video-container';
+                    
+                    var video = document.createElement('video');
+                    video.controls = true;
+                    video.style.width = '100%';
+                    video.style.height = 'auto';
+                    video.style.borderRadius = '16px';
+                    
+                    // 尝试加载视频文件
+                    var videoSource = document.createElement('source');
+                    // 构建完整路径
+                    if (BASE_PATH === './') {
+                        videoSource.src = 'images/启发视频.mp4';
+                    } else {
+                        videoSource.src = BASE_PATH + 'images/启发视频.mp4';
+                    }
+                    videoSource.type = 'video/mp4';
+                    video.appendChild(videoSource);
+                    
+                    if (typeof console !== 'undefined' && console.log) {
+                        console.log('尝试加载视频:', videoSource.src, 'BASE_PATH:', BASE_PATH);
+                    }
+                    
+                    video.onloadeddata = function() {
+                        if (typeof console !== 'undefined' && console.log) {
+                            console.log('视频加载成功:', videoSource.src);
+                        }
+                        videoContainer.appendChild(video);
+                        videoPlaceholder.style.display = 'none';
+                        if (videoPlaceholder.parentNode) {
+                            videoPlaceholder.parentNode.insertBefore(videoContainer, videoPlaceholder);
+                            videoPlaceholder.remove();
                         }
                     };
-                    tryNext();
-                };
+                    
+                    video.onerror = function() {
+                        if (typeof console !== 'undefined' && console.error) {
+                            console.error('视频加载失败:', videoSource.src);
+                        }
+                        // 尝试其他可能的文件名
+                        var altNames = ['启发视频.MP3', '启发视频.mp4', 'images/启发视频.mp4'];
+                        var tryIndex = 0;
+                        var tryNext = function() {
+                            if (tryIndex < altNames.length) {
+                                videoSource.src = altNames[tryIndex];
+                                video.load();
+                                tryIndex++;
+                            }
+                        };
+                        tryNext();
+                    };
+                }
+            } catch (e) {
+                if (typeof console !== 'undefined' && console.error) {
+                    console.error('处理视频占位符失败:', e);
+                }
             }
             } catch (e) {
-                console.error('loadImages函数执行出错:', e);
+                if (typeof console !== 'undefined' && console.error) {
+                    console.error('loadImages函数执行出错:', e);
+                }
             }
         }
 
