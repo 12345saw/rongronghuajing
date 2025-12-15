@@ -4766,10 +4766,10 @@
                     return './';
                 }
                 
-                const protocol = window.location.protocol || '';
-                const hostname = window.location.hostname || '';
-                const path = window.location.pathname || '';
-                const href = window.location.href || '';
+                var protocol = window.location.protocol || '';
+                var hostname = window.location.hostname || '';
+                var path = window.location.pathname || '';
+                var href = window.location.href || '';
                 
                 // 如果是本地文件（file:// 协议），使用相对路径
                 if (protocol === 'file:') {
@@ -7489,9 +7489,9 @@
                     document.addEventListener('mouseup', handleMouseUp);
                     
                     // 触摸事件支持
-                    let touchStartX = 0;
-                    let touchScrollLeft = 0;
-                    let isTouching = false;
+                    var touchStartX = 0;
+                    var touchScrollLeft = 0;
+                    var isTouching = false;
                     
                     wrapper.addEventListener('touchstart', function(e) {
                         if (e.target.closest('a, button')) {
