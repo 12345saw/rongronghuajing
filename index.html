@@ -3170,23 +3170,13 @@
                     <h3>5. 灵感启发</h3>
                     <p>灵感源于萌宠题材的情感共鸣与模拟经营游戏的休闲属性，结合花艺传递善意的正向主题，为玩家提供一个可寄托情感、放松身心的虚拟空间，尤其能慰藉喜爱萌宠、追求治愈感的用户群体。</p>
                     
-                    <!-- 视频占位符 -->
-                    <!-- 
-                    视频文件放置说明：
-                    1. 将视频文件放在 images 文件夹中
-                    2. 支持的视频格式：.mp4, .webm, .ogg
-                    3. 建议视频文件名：inspiration-video.mp4
-                    4. 替换下面的占位符代码为实际视频代码：
-                    
+                    <!-- 视频 -->
                     <div class="video-container">
-                        <video controls poster="images/video-poster.jpg">
-                            <source src="images/inspiration-video.mp4" type="video/mp4">
-                            <source src="images/inspiration-video.webm" type="video/webm">
+                        <video controls style="width: 100%; height: auto; border-radius: 16px; display: block;">
+                            <source src="images/启发视频.mp4" type="video/mp4">
                             您的浏览器不支持视频播放。
                         </video>
                     </div>
-                    -->
-                    <div class="video-placeholder" data-label="灵感启发视频 - 请将视频放在 images 文件夹中"></div>
                 </div>
             </section>
 
@@ -4750,21 +4740,47 @@
                     // 如果是相对路径 images/ 开头，且不是完整URL
                     if (originalSrc && originalSrc.indexOf('images/') === 0 && originalSrc.indexOf('http') !== 0) {
                         var newSrc = basePath + originalSrc;
+                        // 添加 loading="lazy" 优化加载性能（前3张关键图片不懒加载）
+                        if (i >= 3 && !img.hasAttribute('loading')) {
+                            img.setAttribute('loading', 'lazy');
+                        }
+                        // 添加错误处理
+                        img.onerror = function() {
+                            console.error('❌ 图片加载失败:', this.src);
+                            // 尝试重新加载一次
+                            var failedSrc = this.src;
+                            var retrySrc = failedSrc.replace('/rongronghuajing/', '/').replace('/rongronghuajing/', '/');
+                            if (retrySrc !== failedSrc) {
+                                this.src = retrySrc;
+                            }
+                        };
                         img.src = newSrc;
                         fixedCount++;
                         console.log('✅ 修复图片:', originalSrc, '->', newSrc);
                     }
                 }
                 
-                // 修复 video source
-                var allVideos = document.querySelectorAll('video source');
+                // 修复 video source 和 video 标签的 src
+                var allVideos = document.querySelectorAll('video');
                 for (var v = 0; v < allVideos.length; v++) {
-                    var source = allVideos[v];
-                    var src = source.getAttribute('src');
-                    if (src && src.indexOf('images/') === 0 && src.indexOf('http') !== 0) {
-                        source.src = basePath + src;
+                    var video = allVideos[v];
+                    // 修复 video 标签本身的 src（如果有）
+                    var videoSrc = video.getAttribute('src');
+                    if (videoSrc && videoSrc.indexOf('images/') === 0 && videoSrc.indexOf('http') !== 0) {
+                        video.src = basePath + videoSrc;
                         fixedCount++;
-                        console.log('✅ 修复视频源:', src, '->', basePath + src);
+                        console.log('✅ 修复视频:', videoSrc, '->', basePath + videoSrc);
+                    }
+                    // 修复 video 内的 source 标签
+                    var sources = video.querySelectorAll('source');
+                    for (var s = 0; s < sources.length; s++) {
+                        var source = sources[s];
+                        var src = source.getAttribute('src');
+                        if (src && src.indexOf('images/') === 0 && src.indexOf('http') !== 0) {
+                            source.src = basePath + src;
+                            fixedCount++;
+                            console.log('✅ 修复视频源:', src, '->', basePath + src);
+                        }
                     }
                 }
                 
