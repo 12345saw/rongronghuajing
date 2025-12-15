@@ -2544,13 +2544,18 @@
             top: 0;
             left: 0;
             width: 100%;
+            /* iOS Safari兼容：使用-webkit-fill-available，回退到100vh */
             height: 100vh;
+            height: -webkit-fill-available;
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
             /* 欢迎页面背景图片：请将背景图放在 images 文件夹中，命名为 welcome-bg.jpg 或 welcome-bg.png */
             /* 如果没有设置欢迎页面背景图，将使用渐变背景 */
             background-image: url('images/welcome-bg.jpg'), linear-gradient(135deg, #1A1612 0%, #2A241F 50%, #1A1612 100%);
             background-position: center center;
             background-size: cover;
             background-repeat: no-repeat;
+            background-attachment: fixed;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -2560,6 +2565,8 @@
             overflow: hidden;
             /* 欢迎页面显示默认鼠标光标 */
             cursor: default;
+            /* iOS Safari兼容：防止地址栏影响布局 */
+            -webkit-overflow-scrolling: touch;
         }
 
         .welcome-page.hidden {
@@ -2589,6 +2596,11 @@
             z-index: 1;
             animation: welcomeFadeIn 1.5s ease-out;
             cursor: default;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
         }
 
         /* 确保欢迎页面的所有交互元素都显示正确的光标 */
@@ -2609,16 +2621,30 @@
 
         .welcome-logo {
             font-family: 'Noto Serif SC', serif;
+            /* 移动端自适应字体大小 */
             font-size: 5em;
+            font-size: clamp(2.5em, 8vw, 5em);
             font-weight: 600;
             background: linear-gradient(135deg, #C9A882 0%, #D4B896 50%, #E8DCC8 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             margin-bottom: 30px;
+            margin-bottom: clamp(15px, 4vw, 30px);
+            margin-left: auto;
+            margin-right: auto;
+            /* 向左移动一个字的距离 */
+            transform: translateX(-0.5em);
             letter-spacing: 8px;
+            letter-spacing: clamp(4px, 1.5vw, 8px);
             text-shadow: 0 4px 20px rgba(201, 168, 130, 0.3);
             animation: logoGlow 3s ease-in-out infinite;
+            /* iOS Safari兼容 */
+            -webkit-font-smoothing: antialiased;
+            text-align: center;
+            width: 100%;
+            display: block;
+            box-sizing: border-box;
         }
 
         @keyframes logoGlow {
@@ -2628,35 +2654,67 @@
 
         .welcome-subtitle {
             font-size: 1.5em;
+            font-size: clamp(1em, 4vw, 1.5em);
             color: #D4B896;
             margin-bottom: 60px;
+            margin-bottom: clamp(30px, 8vw, 60px);
             font-weight: 300;
             letter-spacing: 3px;
+            letter-spacing: clamp(1px, 0.8vw, 3px);
             opacity: 0.9;
+            text-align: center;
         }
 
         .welcome-info {
             display: flex;
             flex-direction: column;
             gap: 15px;
+            gap: clamp(10px, 2vw, 15px);
             margin-bottom: 60px;
+            margin-bottom: clamp(30px, 8vw, 60px);
             font-size: 1.1em;
+            font-size: clamp(0.9em, 3vw, 1.1em);
             color: #E8DCC8;
+            padding: 0;
+            max-width: 90%;
+            box-sizing: border-box;
+            text-align: center;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
         }
 
         .welcome-info-item {
             opacity: 0.8;
+            text-align: center;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .welcome-info-item strong {
+            display: inline-block;
+            text-align: center;
         }
 
         .welcome-button {
             padding: 18px 50px;
+            padding: clamp(14px, 4vw, 18px) clamp(40px, 10vw, 50px);
             font-size: 1.2em;
+            font-size: clamp(1em, 3.5vw, 1.2em);
             background: linear-gradient(135deg, rgba(201, 168, 130, 0.9) 0%, rgba(212, 184, 150, 0.9) 100%);
             color: #1A1612;
             border: 2px solid rgba(201, 168, 130, 0.6);
             border-radius: 50px;
             cursor: pointer !important;
             font-weight: 600;
+            text-align: center;
+            display: inline-block;
+            margin: 0 auto;
+            /* iOS Safari兼容：确保按钮可点击 */
+            -webkit-tap-highlight-color: rgba(201, 168, 130, 0.3);
+            touch-action: manipulation;
             letter-spacing: 2px;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 8px 25px rgba(201, 168, 130, 0.3), 0 0 0 0 rgba(201, 168, 130, 0.4);
@@ -4709,32 +4767,11 @@
     </div> <!-- 主内容区域结束 -->
 
     <script>
-        // 检测微信浏览器
+        // 检测微信浏览器（仅用于兼容性处理，不显示提示）
         var isWeChat = /MicroMessenger/i.test(navigator.userAgent);
         
-        // 如果是微信浏览器，显示提示
-        if (isWeChat) {
-            document.addEventListener('DOMContentLoaded', function() {
-                var wechatTip = document.createElement('div');
-                wechatTip.id = 'wechat-tip';
-                wechatTip.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: linear-gradient(135deg, #ff6b6b, #ee5a6f); color: white; padding: 15px 20px; z-index: 10000; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.3);';
-                wechatTip.innerHTML = '<div style="font-size: 14px; line-height: 1.6;">💡 检测到微信浏览器，部分功能可能受限<br>建议点击右上角"..."选择"在浏览器中打开"以获得最佳体验</div>';
-                document.body.appendChild(wechatTip);
-                
-                // 3秒后自动隐藏
-                setTimeout(function() {
-                    if (wechatTip && wechatTip.parentNode) {
-                        wechatTip.style.transition = 'opacity 0.5s';
-                        wechatTip.style.opacity = '0';
-                        setTimeout(function() {
-                            if (wechatTip && wechatTip.parentNode) {
-                                wechatTip.parentNode.removeChild(wechatTip);
-                            }
-                        }, 500);
-                    }
-                }, 5000);
-            });
-        }
+        // 检测iOS Safari
+        var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         
         // 安全的console日志函数（移动端兼容）
         var safeLog = function() {
@@ -4777,6 +4814,42 @@
                 e.preventDefault(); // 阻止默认错误处理
             }
         });
+        
+        // iOS Safari特殊处理：修复100vh高度问题
+        if (isIOS) {
+            function setWelcomePageHeight() {
+                var welcomePage = document.getElementById('welcomePage');
+                if (welcomePage) {
+                    // iOS Safari中，100vh不包括地址栏，需要动态计算
+                    var vh = window.innerHeight;
+                    welcomePage.style.height = vh + 'px';
+                    welcomePage.style.minHeight = vh + 'px';
+                }
+            }
+            
+            // 页面加载时设置
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', setWelcomePageHeight);
+            } else {
+                setWelcomePageHeight();
+            }
+            
+            // 窗口大小改变时重新设置（iOS Safari地址栏显示/隐藏时）
+            window.addEventListener('resize', setWelcomePageHeight);
+            window.addEventListener('orientationchange', function() {
+                setTimeout(setWelcomePageHeight, 100);
+            });
+            
+            // 滚动时也更新（iOS Safari地址栏会隐藏）
+            var lastHeight = window.innerHeight;
+            window.addEventListener('scroll', function() {
+                var currentHeight = window.innerHeight;
+                if (Math.abs(currentHeight - lastHeight) > 50) {
+                    lastHeight = currentHeight;
+                    setWelcomePageHeight();
+                }
+            });
+        }
         
         // 微信浏览器特殊处理：确保页面内容能显示
         if (isWeChat) {
@@ -5553,39 +5626,7 @@
                 }
                 console.log('📌 最终BASE_PATH:', BASE_PATH);
                 
-                // 先测试一个图片，确认路径是否正确
-                var testPath = BASE_PATH === './' ? 'images/按钮.jpg' : BASE_PATH + 'images/按钮.jpg';
-                var testFullUrl = window.location ? (window.location.origin + testPath) : testPath;
-                console.log('🔍 测试图片路径:', testPath);
-                console.log('🔍 完整URL:', testFullUrl);
-                
-                // 在页面上显示测试结果
-                var testDiv = document.createElement('div');
-                testDiv.id = 'image-test-result';
-                testDiv.style.cssText = 'position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 15px; border-radius: 8px; z-index: 10000; max-width: 400px; font-size: 12px;';
-                testDiv.innerHTML = '<div style="font-weight: bold; margin-bottom: 10px;">🔍 图片路径测试中...</div>';
-                document.body.appendChild(testDiv);
-                
-                testSingleImage(testPath, function(exists, path) {
-                    if (exists) {
-                        console.log('✅ 测试图片加载成功，路径正确:', path);
-                        testDiv.innerHTML = '<div style="color: #4ade80; font-weight: bold; margin-bottom: 10px;">✅ 图片路径正确</div>' +
-                            '<div style="font-size: 11px; color: #a3a3a3;">路径: ' + path + '</div>' +
-                            '<div style="font-size: 11px; color: #a3a3a3; margin-top: 5px;">如果图片仍不显示，请检查文件名是否匹配</div>';
-                        setTimeout(function() { testDiv.style.display = 'none'; }, 5000);
-                    } else {
-                        console.error('❌ 测试图片加载失败:', path);
-                        console.error('完整URL:', testFullUrl);
-                        testDiv.innerHTML = '<div style="color: #f87171; font-weight: bold; margin-bottom: 10px;">❌ 图片无法加载</div>' +
-                            '<div style="font-size: 11px; margin-bottom: 10px;">尝试的路径: ' + path + '</div>' +
-                            '<div style="font-size: 11px; margin-bottom: 10px;">完整URL: ' + testFullUrl + '</div>' +
-                            '<div style="font-size: 11px; color: #fbbf24; margin-top: 10px; border-top: 1px solid #444; padding-top: 10px;">💡 请检查:</div>' +
-                            '<div style="font-size: 11px; margin-left: 10px; margin-top: 5px;">1. GitHub 仓库中是否有 images/ 文件夹</div>' +
-                            '<div style="font-size: 11px; margin-left: 10px;">2. images/ 文件夹中是否有 按钮.jpg 文件</div>' +
-                            '<div style="font-size: 11px; margin-left: 10px;">3. 文件名是否完全匹配（包括大小写）</div>' +
-                            '<div style="font-size: 11px; margin-left: 10px; margin-top: 5px;">4. 在浏览器中直接访问: <a href="' + testFullUrl + '" target="_blank" style="color: #60a5fa;">' + testFullUrl + '</a></div>';
-                    }
-                });
+                // 图片路径测试已移除（不再显示调试提示框）
                 
                 // 先修复静态图片路径
                 fixStaticImagePaths();
