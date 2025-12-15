@@ -4790,7 +4790,9 @@
                 if (document.body) {
                     const bgPath = finalBasePath === './' ? 'images/background.jpg' : finalBasePath + 'images/background.jpg';
                     document.body.style.backgroundImage = 'url(\'' + bgPath + '\')';
-                    console.log('修复 body 背景图片:', bgPath, 'BASE_PATH:', finalBasePath);
+                    if (typeof console !== 'undefined' && console.log) {
+                        console.log('修复 body 背景图片:', bgPath, 'BASE_PATH:', finalBasePath);
+                    }
                 }
                 
                 // 修复欢迎页面背景图片
@@ -4798,50 +4800,88 @@
                 if (welcomeSection) {
                     const welcomeBgPath = finalBasePath === './' ? 'images/welcome-bg.jpg' : finalBasePath + 'images/welcome-bg.jpg';
                     welcomeSection.style.backgroundImage = 'url(\'' + welcomeBgPath + '\'), linear-gradient(135deg, #1A1612 0%, #2A241F 50%, #1A1612 100%)';
-                    console.log('修复欢迎页面背景图片:', welcomeBgPath);
+                    if (typeof console !== 'undefined' && console.log) {
+                        console.log('修复欢迎页面背景图片:', welcomeBgPath);
+                    }
+                }
+                
+                // 修复静态 img 标签（src 以 images/ 开头的）
+                try {
+                    const staticImages = document.querySelectorAll('img');
+                    staticImages.forEach(function(img) {
+                        try {
+                            const originalSrc = img.getAttribute('src') || img.src;
+                            if (originalSrc && (originalSrc.indexOf('images/') !== -1 || originalSrc.indexOf('images/') === 0)) {
+                                // 如果路径不是完整URL且不是以BASE_PATH开头，则修复
+                                if (originalSrc.indexOf('http') !== 0 && originalSrc.indexOf('/rongronghuajing/') !== 0) {
+                                    let fixedSrc;
+                                    if (finalBasePath === './') {
+                                        fixedSrc = originalSrc;
+                                    } else {
+                                        if (originalSrc.indexOf('images/') === 0) {
+                                            fixedSrc = finalBasePath + originalSrc;
+                                        } else {
+                                            const parts = originalSrc.split('/');
+                                            fixedSrc = finalBasePath + 'images/' + parts[parts.length - 1];
+                                        }
+                                    }
+                                    img.src = fixedSrc;
+                                    if (typeof console !== 'undefined' && console.log) {
+                                        console.log('修复静态图片路径:', originalSrc, '->', fixedSrc);
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            // 忽略单个图片的错误
+                        }
+                    });
+                } catch (e) {
+                    console.error('修复静态图片失败:', e);
+                }
+                
+                // 修复 video 标签
+                try {
+                    const videos = document.querySelectorAll('video');
+                    videos.forEach(function(video) {
+                        try {
+                            // 修复 poster
+                            const poster = video.getAttribute('poster');
+                            if (poster && poster.indexOf('images/') === 0) {
+                                if (finalBasePath !== './') {
+                                    video.poster = finalBasePath + poster;
+                                    if (typeof console !== 'undefined' && console.log) {
+                                        console.log('修复视频 poster:', poster, '->', video.poster);
+                                    }
+                                }
+                            }
+                            
+                            // 修复 source
+                            const sources = video.querySelectorAll('source');
+                            sources.forEach(function(source) {
+                                try {
+                                    const src = source.getAttribute('src');
+                                    if (src && src.indexOf('images/') === 0) {
+                                        if (finalBasePath !== './') {
+                                            source.src = finalBasePath + src;
+                                            if (typeof console !== 'undefined' && console.log) {
+                                                console.log('修复视频源:', src, '->', source.src);
+                                            }
+                                        }
+                                    }
+                                } catch (e) {
+                                    // 忽略单个source的错误
+                                }
+                            });
+                        } catch (e) {
+                            // 忽略单个video的错误
+                        }
+                    });
+                } catch (e) {
+                    console.error('修复视频标签失败:', e);
                 }
             } catch (e) {
                 console.error('修复静态图片路径失败:', e);
             }
-            
-            // 修复静态 img 标签（src 以 images/ 开头的）
-            const staticImages = document.querySelectorAll('img');
-            staticImages.forEach(img => {
-                const originalSrc = img.getAttribute('src') || img.src;
-                if (originalSrc && (originalSrc.indexOf('images/') !== -1 || originalSrc.startsWith('images/'))) {
-                    // 如果路径不是完整URL且不是以BASE_PATH开头，则修复
-                    if (!originalSrc.startsWith('http') && !originalSrc.startsWith('/rongronghuajing/')) {
-                        const fixedSrc = finalBasePath === './' ? originalSrc : finalBasePath + (originalSrc.startsWith('images/') ? originalSrc : 'images/' + originalSrc.split('/').pop());
-                        img.src = fixedSrc;
-                        console.log('修复静态图片路径:', originalSrc, '->', fixedSrc);
-                    }
-                }
-            });
-            
-            // 修复 video 标签
-            const videos = document.querySelectorAll('video');
-            videos.forEach(video => {
-                // 修复 poster
-                const poster = video.getAttribute('poster');
-                if (poster && poster.startsWith('images/')) {
-                    if (BASE_PATH !== './') {
-                        video.poster = BASE_PATH + poster;
-                        console.log('修复视频 poster:', poster, '->', video.poster);
-                    }
-                }
-                
-                // 修复 source
-                const sources = video.querySelectorAll('source');
-                sources.forEach(source => {
-                    const src = source.getAttribute('src');
-                    if (src && src.startsWith('images/')) {
-                        if (BASE_PATH !== './') {
-                            source.src = BASE_PATH + src;
-                            console.log('修复视频源:', src, '->', source.src);
-                        }
-                    }
-                });
-            });
         }
         
         // 图片加载功能：根据 data-label 自动加载对应的图片
@@ -4897,80 +4937,90 @@
             };
 
             // 查找所有图片占位符
-            const placeholders = document.querySelectorAll('.image-placeholder');
+            var placeholders = document.querySelectorAll('.image-placeholder');
             
-            placeholders.forEach(placeholder => {
-                const label = placeholder.getAttribute('data-label');
-                if (!label) return;
+            // 重新确认BASE_PATH（确保使用最新值）
+            var currentBasePath = getBasePath();
+            var finalBasePath = currentBasePath !== './' ? currentBasePath : BASE_PATH;
+            
+            for (var i = 0; i < placeholders.length; i++) {
+                try {
+                    var placeholder = placeholders[i];
+                    var label = placeholder.getAttribute('data-label');
+                    if (!label) continue;
 
-                // 尝试从映射表中获取文件名
-                let filename = imageMap[label];
-                
-                // 如果没有找到精确匹配，尝试模糊匹配（去除空格和横线）
-                if (!filename) {
-                    const normalizedLabel = label.replace(/\s+/g, '').replace(/[-－]/g, '');
-                    for (const [key, value] of Object.entries(imageMap)) {
-                        const normalizedKey = key.replace(/\s+/g, '').replace(/[-－]/g, '');
-                        if (normalizedLabel === normalizedKey || normalizedLabel.includes(normalizedKey) || normalizedKey.includes(normalizedLabel)) {
-                            filename = value;
-                            break;
+                    // 尝试从映射表中获取文件名
+                    var filename = imageMap[label];
+                    
+                    // 如果没有找到精确匹配，尝试模糊匹配（去除空格和横线）
+                    if (!filename) {
+                        var normalizedLabel = label.replace(/\s+/g, '').replace(/[-－]/g, '');
+                        for (var key in imageMap) {
+                            if (imageMap.hasOwnProperty(key)) {
+                                var normalizedKey = key.replace(/\s+/g, '').replace(/[-－]/g, '');
+                                if (normalizedLabel === normalizedKey || normalizedLabel.indexOf(normalizedKey) !== -1 || normalizedKey.indexOf(normalizedLabel) !== -1) {
+                                    filename = imageMap[key];
+                                    break;
+                                }
+                            }
                         }
                     }
-                }
 
-                // 如果找到了文件名，创建图片元素
-                if (filename) {
-                    const img = document.createElement('img');
-                    // 重新确认BASE_PATH（确保使用最新值）
-                    const currentBasePath = getBasePath();
-                    const finalBasePath = currentBasePath !== './' ? currentBasePath : BASE_PATH;
-                    
-                    // 构建完整路径
-                    let imagePath;
-                    if (finalBasePath === './') {
-                        imagePath = 'images/' + filename;
-                    } else {
-                        // 确保BASE_PATH以/结尾
-                        const base = finalBasePath.endsWith('/') ? finalBasePath : finalBasePath + '/';
-                        imagePath = base + 'images/' + filename;
-                    }
-                    img.src = imagePath;
-                    img.alt = label;
-                    console.log('尝试加载图片:');
-                    console.log('  - 标签:', label);
-                    console.log('  - 文件名:', filename);
-                    console.log('  - BASE_PATH:', finalBasePath);
-                    console.log('  - 完整路径:', imagePath);
-                    console.log('  - 当前URL:', window.location.href);
-                    img.style.width = '100%';
-                    img.style.height = 'auto';
-                    img.style.borderRadius = '16px';
-                    img.style.display = 'block';
-                    img.style.objectFit = 'contain';
-                    
-                    // 检查是否是小型图片（需要缩小）
-                    const isSmallImage = placeholder.hasAttribute('data-small-image');
-                    if (isSmallImage) {
-                        img.style.maxHeight = '300px';
-                        img.style.maxWidth = '100%';
-                    } else {
-                    img.style.maxHeight = '600px';
-                    }
-                    
-                    img.style.margin = '0 auto';
-                    img.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.3)';
-                    
-                    // 图片加载成功时替换占位符
-                    img.onload = function() {
+                    // 如果找到了文件名，创建图片元素
+                    if (filename) {
+                        var img = document.createElement('img');
+                        
+                        // 构建完整路径
+                        var imagePath;
+                        if (finalBasePath === './') {
+                            imagePath = 'images/' + filename;
+                        } else {
+                            // 确保BASE_PATH以/结尾（兼容性写法）
+                            var base = finalBasePath;
+                            if (base.charAt(base.length - 1) !== '/') {
+                                base = base + '/';
+                            }
+                            imagePath = base + 'images/' + filename;
+                        }
+                        img.src = imagePath;
+                        img.alt = label;
+                        if (typeof console !== 'undefined' && console.log) {
+                            console.log('尝试加载图片:');
+                            console.log('  - 标签:', label);
+                            console.log('  - 文件名:', filename);
+                            console.log('  - BASE_PATH:', finalBasePath);
+                            console.log('  - 完整路径:', imagePath);
+                        }
+                        
+                        img.style.width = '100%';
+                        img.style.height = 'auto';
+                        img.style.borderRadius = '16px';
+                        img.style.display = 'block';
+                        img.style.objectFit = 'contain';
+                        
+                        // 检查是否是小型图片（需要缩小）
+                        var isSmallImage = placeholder.hasAttribute('data-small-image');
+                        if (isSmallImage) {
+                            img.style.maxHeight = '300px';
+                            img.style.maxWidth = '100%';
+                        } else {
+                            img.style.maxHeight = '600px';
+                        }
+                        
+                        img.style.margin = '0 auto';
+                        img.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.3)';
+                        
+                        // 图片加载成功时替换占位符
+                        img.onload = function() {
                         // 如果占位符有ID，将ID转移到图片上
                         const placeholderId = placeholder.getAttribute('id');
                         if (placeholderId) {
                             img.setAttribute('id', placeholderId);
                         }
                         
-                        // 检查是否是小型图片，保持父容器的样式
-                        const isSmallImage = placeholder.hasAttribute('data-small-image');
-                        const showLabel = placeholder.hasAttribute('data-show-label');
+                            // 检查是否是小型图片，保持父容器的样式
+                            var isSmallImage = placeholder.hasAttribute('data-small-image');
+                            var showLabel = placeholder.hasAttribute('data-show-label');
                         if (isSmallImage) {
                             // 先保存原始label，用于显示标题
                             const originalLabel = label;
@@ -4998,97 +5048,124 @@
                             } else {
                                 img.style.borderRadius = '16px';
                             }
-                        } else {
-                        placeholder.style.display = 'none';
-                        placeholder.parentNode.insertBefore(img, placeholder);
-                        placeholder.remove();
-                        }
-                    };
-                    
-                    // 图片加载失败时显示错误信息并尝试备用路径
-                    img.onerror = function() {
-                        // 重新确认BASE_PATH
-                        const currentBasePath = getBasePath();
-                        const finalBasePath = currentBasePath !== './' ? currentBasePath : BASE_PATH;
-                        
-                        console.error('图片加载失败:');
-                        console.error('  - 尝试的路径:', img.src);
-                        console.error('  - 标签:', label);
-                        console.error('  - 文件名:', filename);
-                        console.error('  - BASE_PATH:', finalBasePath);
-                        console.error('  - 当前页面URL:', window.location.href);
-                        
-                        // 尝试备用路径和文件名变体
-                        const altPaths = [];
-                        const filenameVariants = [
-                            filename,
-                            filename.replace('.jpg', '.png'),
-                            filename.replace('.png', '.jpg'),
-                            filename.replace('.jpg', '.jpeg'),
-                            label.replace(/\s+/g, '-') + '.jpg',
-                            label.replace(/\s+/g, '') + '.jpg'
-                        ];
-                        
-                        // 为每个文件名变体生成多个路径
-                        filenameVariants.forEach(variant => {
-                            if (finalBasePath === './') {
-                                altPaths.push('images/' + variant);
-                                altPaths.push('/rongronghuajing/images/' + variant);
                             } else {
-                                altPaths.push(finalBasePath + 'images/' + variant);
-                                altPaths.push('images/' + variant);
-                                altPaths.push('./images/' + variant);
-                                altPaths.push('/rongronghuajing/images/' + variant);
-                            }
-                        });
-                        
-                        // 去重
-                        const uniquePaths = [...new Set(altPaths)];
-                        console.log('将尝试', uniquePaths.length, '个备用路径');
-                        
-                        let altIndex = 0;
-                        const tryAltPath = () => {
-                            if (altIndex < uniquePaths.length) {
-                                const altImg = new Image();
-                                altImg.src = uniquePaths[altIndex];
-                                console.log('尝试备用路径 (' + (altIndex + 1) + '/' + uniquePaths.length + '):', altImg.src);
-                                altImg.onload = function() {
-                                    console.log('备用路径成功:', altImg.src);
-                                    img.src = altImg.src;
-                                    // 重新触发加载
-                                    img.dispatchEvent(new Event('load'));
-                                };
-                                altImg.onerror = function() {
-                                    altIndex++;
-                                    tryAltPath();
-                                };
-                            } else {
-                                // 所有路径都失败，显示错误
-                                placeholder.style.borderColor = 'rgba(255, 0, 0, 0.5)';
-                                placeholder.style.background = 'rgba(255, 0, 0, 0.1)';
-                                
-                                const errorText = document.createElement('div');
-                                errorText.textContent = '图片未找到: ' + filename;
-                                errorText.style.color = '#ff6b6b';
-                                errorText.style.padding = '10px';
-                                errorText.style.textAlign = 'center';
-                                errorText.style.fontSize = '14px';
-                                
-                                const debugText = document.createElement('div');
-                                debugText.textContent = '路径: ' + img.src;
-                                debugText.style.color = '#ff9999';
-                                debugText.style.padding = '5px';
-                                debugText.style.fontSize = '12px';
-                                debugText.style.fontFamily = 'monospace';
-                                
-                                placeholder.appendChild(errorText);
-                                placeholder.appendChild(debugText);
+                                placeholder.style.display = 'none';
+                                if (placeholder.parentNode) {
+                                    placeholder.parentNode.insertBefore(img, placeholder);
+                                    placeholder.remove();
+                                }
                             }
                         };
-                        tryAltPath();
-                    };
+                        
+                        // 图片加载失败时显示错误信息并尝试备用路径
+                        img.onerror = function() {
+                            if (typeof console !== 'undefined' && console.error) {
+                                console.error('图片加载失败:');
+                                console.error('  - 尝试的路径:', img.src);
+                                console.error('  - 标签:', label);
+                                console.error('  - 文件名:', filename);
+                                console.error('  - BASE_PATH:', finalBasePath);
+                            }
+                        
+                            // 尝试备用路径和文件名变体（兼容性写法）
+                            var altPaths = [];
+                            var filenameVariants = [
+                                filename,
+                                filename.replace('.jpg', '.png'),
+                                filename.replace('.png', '.jpg'),
+                                filename.replace('.jpg', '.jpeg'),
+                                label.replace(/\s+/g, '-') + '.jpg',
+                                label.replace(/\s+/g, '') + '.jpg'
+                            ];
+                            
+                            // 为每个文件名变体生成多个路径（兼容性写法）
+                            for (var v = 0; v < filenameVariants.length; v++) {
+                                var variant = filenameVariants[v];
+                                if (finalBasePath === './') {
+                                    altPaths.push('images/' + variant);
+                                    altPaths.push('/rongronghuajing/images/' + variant);
+                                } else {
+                                    altPaths.push(finalBasePath + 'images/' + variant);
+                                    altPaths.push('images/' + variant);
+                                    altPaths.push('./images/' + variant);
+                                    altPaths.push('/rongronghuajing/images/' + variant);
+                                }
+                            }
+                            
+                            // 去重（兼容性写法）
+                            var uniquePaths = [];
+                            for (var p = 0; p < altPaths.length; p++) {
+                                var path = altPaths[p];
+                                var found = false;
+                                for (var u = 0; u < uniquePaths.length; u++) {
+                                    if (uniquePaths[u] === path) {
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found) {
+                                    uniquePaths.push(path);
+                                }
+                            }
+                            
+                            if (typeof console !== 'undefined' && console.log) {
+                                console.log('将尝试', uniquePaths.length, '个备用路径');
+                            }
+                            
+                            var altIndex = 0;
+                            var tryAltPath = function() {
+                                if (altIndex < uniquePaths.length) {
+                                    var altImg = new Image();
+                                    altImg.src = uniquePaths[altIndex];
+                                    if (typeof console !== 'undefined' && console.log) {
+                                        console.log('尝试备用路径 (' + (altIndex + 1) + '/' + uniquePaths.length + '):', altImg.src);
+                                    }
+                                    altImg.onload = function() {
+                                        if (typeof console !== 'undefined' && console.log) {
+                                            console.log('备用路径成功:', altImg.src);
+                                        }
+                                        img.src = altImg.src;
+                                        // 重新触发加载（兼容性写法）
+                                        if (img.onload) {
+                                            img.onload();
+                                        }
+                                    };
+                                    altImg.onerror = function() {
+                                        altIndex++;
+                                        tryAltPath();
+                                    };
+                                } else {
+                                    // 所有路径都失败，显示错误
+                                    placeholder.style.borderColor = 'rgba(255, 0, 0, 0.5)';
+                                    placeholder.style.background = 'rgba(255, 0, 0, 0.1)';
+                                    
+                                    var errorText = document.createElement('div');
+                                    errorText.textContent = '图片未找到: ' + filename;
+                                    errorText.style.color = '#ff6b6b';
+                                    errorText.style.padding = '10px';
+                                    errorText.style.textAlign = 'center';
+                                    errorText.style.fontSize = '14px';
+                                    
+                                    var debugText = document.createElement('div');
+                                    debugText.textContent = '路径: ' + img.src;
+                                    debugText.style.color = '#ff9999';
+                                    debugText.style.padding = '5px';
+                                    debugText.style.fontSize = '12px';
+                                    debugText.style.fontFamily = 'monospace';
+                                    
+                                    placeholder.appendChild(errorText);
+                                    placeholder.appendChild(debugText);
+                                }
+                            };
+                            tryAltPath();
+                        } catch (e) {
+                            if (typeof console !== 'undefined' && console.error) {
+                                console.error('处理图片占位符失败:', e);
+                            }
+                        }
+                    }
                 }
-            });
+            }
 
             // 处理角色图片（.character-image）
             const characterImages = document.querySelectorAll('.character-image');
