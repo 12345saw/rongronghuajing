@@ -138,15 +138,46 @@
         
         /* 欢迎页面：始终显示鼠标光标 */
         .welcome-page,
-        .welcome-page *,
-        .welcome-page a:hover,
-        .welcome-page button:hover {
+        .welcome-page * {
             cursor: default !important;
         }
         
+        .welcome-page a,
+        .welcome-page button,
         .welcome-button,
-        .welcome-button:hover {
+        .welcome-button:hover,
+        .welcome-button:active,
+        .welcome-button:focus {
             cursor: pointer !important;
+        }
+        
+        /* 确保欢迎页面显示时，body也显示光标 */
+        body.welcome-active,
+        body.welcome-active * {
+            cursor: default !important;
+        }
+        
+        body.welcome-active button,
+        body.welcome-active .welcome-button {
+            cursor: pointer !important;
+        }
+        
+        /* 强制覆盖：确保欢迎页面所有元素都显示光标 */
+        html body .welcome-page,
+        html body .welcome-page * {
+            cursor: default !important;
+        }
+        
+        html body .welcome-button,
+        html body .welcome-button:hover,
+        html body .welcome-button:active,
+        html body .welcome-button:focus {
+            cursor: pointer !important;
+        }
+        
+        /* 直接设置body光标（最高优先级） */
+        body:not(.main-active) {
+            cursor: default !important;
         }
 
         /* 花瓣飘落效果 */
@@ -3112,7 +3143,7 @@
                 <div class="welcome-info-item"><strong>学号：</strong>2314010219</div>
                 <div class="welcome-info-item"><strong>姓名：</strong>王诗情</div>
             </div>
-            <button class="welcome-button" id="enterButton">
+            <button class="welcome-button" id="enterButton" onclick="if(typeof handleEnterDocument==='function'){handleEnterDocument();}else{alert('页面加载中，请稍候...');}" style="cursor: pointer !important;">
                 <span>进入文档</span>
             </button>
         </div>
@@ -4807,9 +4838,9 @@
                     document.body.style.display = 'block';
                 }
                 
-                // 确保欢迎页面可见
+                // 确保欢迎页面可见（总是显示，除非用户点击了进入按钮）
                 var welcomePage = document.getElementById('welcomePage');
-                if (welcomePage) {
+                if (welcomePage && !welcomePage.classList.contains('hidden')) {
                     welcomePage.style.visibility = 'visible';
                     welcomePage.style.opacity = '1';
                     welcomePage.style.display = 'flex';
@@ -4834,15 +4865,17 @@
             }
         })();
         
-        // 页面加载超时保护：如果5秒后还没加载完，强制显示内容
+        // 页面加载超时保护：如果5秒后还没加载完，强制显示内容（仅当未进入过时）
         setTimeout(function() {
             try {
                 if (document.body) {
                     document.body.style.visibility = 'visible';
                     document.body.style.opacity = '1';
                 }
+                
+                // 确保欢迎页面可见（总是显示，除非用户点击了进入按钮）
                 var welcomePage = document.getElementById('welcomePage');
-                if (welcomePage) {
+                if (welcomePage && !welcomePage.classList.contains('hidden')) {
                     welcomePage.style.display = 'flex';
                     welcomePage.style.visibility = 'visible';
                     welcomePage.style.opacity = '1';
@@ -6290,13 +6323,57 @@
     </script>
 
     <script>
-        // 欢迎页面控制
-        const welcomePage = document.getElementById('welcomePage');
-        const enterButton = document.getElementById('enterButton');
-        const pageTransition = document.getElementById('pageTransition');
-        const mainContent = document.getElementById('mainContent');
-        const customCursor = document.getElementById('customCursor');
-        const customCursorDot = document.getElementById('customCursorDot');
+        // 欢迎页面控制 - 立即执行，确保元素能找到
+        var welcomePage, enterButton, pageTransition, mainContent, customCursor, customCursorDot;
+        
+        // 等待DOM加载完成
+        function initWelcomePage() {
+            welcomePage = document.getElementById('welcomePage');
+            enterButton = document.getElementById('enterButton');
+            pageTransition = document.getElementById('pageTransition');
+            mainContent = document.getElementById('mainContent');
+            customCursor = document.getElementById('customCursor');
+            customCursorDot = document.getElementById('customCursorDot');
+            
+            // 总是显示欢迎页面，不自动跳过
+            
+            // 立即设置鼠标光标显示
+            if (document.body) {
+                document.body.style.cursor = 'default';
+                document.body.classList.add('welcome-active');
+            }
+            
+            // 确保欢迎页面可见（仅当未进入过时）
+            if (welcomePage) {
+                welcomePage.style.visibility = 'visible';
+                welcomePage.style.opacity = '1';
+                welcomePage.style.display = 'flex';
+                welcomePage.classList.remove('hidden');
+            }
+            
+            // 确保按钮可见且可点击
+            if (enterButton) {
+                enterButton.style.cursor = 'pointer';
+                enterButton.style.pointerEvents = 'auto';
+            }
+            
+            safeLog('欢迎页面初始化完成', {
+                welcomePage: !!welcomePage,
+                enterButton: !!enterButton,
+                mainContent: !!mainContent,
+                hasEntered: hasEntered
+            });
+        }
+        
+        // 立即尝试初始化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initWelcomePage);
+        } else {
+            initWelcomePage();
+        }
+        
+        // 延迟初始化（备用）
+        setTimeout(initWelcomePage, 100);
 
         // 在欢迎页面显示时，隐藏自定义光标，显示默认光标
         function updateCursorVisibility() {
@@ -6305,18 +6382,34 @@
                 if (customCursor) customCursor.style.display = 'none';
                 if (customCursorDot) customCursorDot.style.display = 'none';
                 // 确保body显示默认光标
-                document.body.style.cursor = 'default';
+                if (document.body) {
+                    document.body.style.cursor = 'default';
+                    document.body.classList.add('welcome-active');
+                }
             } else {
                 // 进入主页面后，恢复自定义光标（如果是桌面端）
+                if (document.body) {
+                    document.body.classList.remove('welcome-active');
+                }
                 if (!isMobile) {
                     if (customCursor) customCursor.style.display = 'block';
                     if (customCursorDot) customCursorDot.style.display = 'block';
-                    document.body.style.cursor = 'none';
+                    if (document.body) document.body.style.cursor = 'none';
                 } else {
-                    document.body.style.cursor = 'default';
+                    if (document.body) document.body.style.cursor = 'default';
                 }
             }
         }
+        
+        // 页面加载时立即设置光标
+        setTimeout(function() {
+            if (welcomePage && !welcomePage.classList.contains('hidden')) {
+                if (document.body) {
+                    document.body.classList.add('welcome-active');
+                    document.body.style.cursor = 'default';
+                }
+            }
+        }, 50);
 
         // 创建欢迎页面花瓣效果
         function createWelcomePetal() {
@@ -6336,59 +6429,56 @@
             }, 10000);
         }
 
-        // 进入文档按钮点击事件（支持多种触发方式）
-        if (enterButton) {
-            // 统一的进入文档处理函数
-            function handleEnterDocument() {
+        // 统一的进入文档处理函数（全局函数，确保onclick能调用）
+        window.handleEnterDocument = function() {
+            safeLog('handleEnterDocument 被调用');
+            try {
                 // 显示过渡层
                 if (pageTransition) {
                     pageTransition.classList.add('active');
+                    safeLog('过渡层已显示');
                 }
                 
                 // 延迟隐藏欢迎页面
                 setTimeout(function() {
+                    safeLog('隐藏欢迎页面');
                     if (welcomePage) {
                         welcomePage.classList.add('hidden');
+                        welcomePage.style.display = 'none';
                     }
                     // 更新光标显示
                     if (typeof updateCursorVisibility === 'function') {
                         updateCursorVisibility();
                     }
                 }, 300);
-            }
-            
-            // 鼠标点击
-            enterButton.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                handleEnterDocument();
-            });
-            
-            // 触摸事件（移动端）
-            enterButton.addEventListener('touchend', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                handleEnterDocument();
-            });
-            
-            // 键盘事件（回车键和空格键）
-            enterButton.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleEnterDocument();
-                }
-            });
-            
-            // 确保按钮可访问
-            enterButton.setAttribute('tabindex', '0');
-            enterButton.setAttribute('role', 'button');
-            enterButton.setAttribute('aria-label', '进入文档');
-            
-            // 延迟显示主内容（在handleEnterDocument函数中）
-            function showMainContent() {
+                
+                // 延迟显示主内容
                 setTimeout(function() {
+                    safeLog('显示主内容');
                     if (mainContent) {
                         mainContent.classList.add('visible');
+                        mainContent.style.visibility = 'visible';
+                        mainContent.style.opacity = '1';
+                        mainContent.style.display = 'block';
+                        mainContent.style.zIndex = '1';
+                        mainContent.style.position = 'relative';
+                        // 移除body的welcome-active类
+                        if (document.body) {
+                            document.body.classList.remove('welcome-active');
+                            document.body.classList.add('main-active');
+                        }
+                        safeLog('主内容已显示');
+                    } else {
+                        safeError('mainContent 元素未找到，尝试通过class查找');
+                        // 备用方案：通过class查找
+                        var mainContentByClass = document.querySelector('.main-content');
+                        if (mainContentByClass) {
+                            mainContentByClass.classList.add('visible');
+                            mainContentByClass.style.visibility = 'visible';
+                            mainContentByClass.style.opacity = '1';
+                            mainContentByClass.style.display = 'block';
+                            safeLog('通过class找到主内容并显示');
+                        }
                     }
                     if (pageTransition) {
                         pageTransition.classList.remove('active');
@@ -6399,35 +6489,121 @@
                         top: 0,
                         behavior: 'smooth'
                     });
+                    
+                    // 记录已进入
+                    try {
+                        localStorage.setItem('hasEnteredWelcome', 'true');
+                    } catch(e) {
+                        // 忽略localStorage错误
+                    }
                 }, 800);
+            } catch(e) {
+                safeError('进入文档失败:', e);
+                // 如果出错，至少隐藏欢迎页面并显示主内容
+                if (welcomePage) {
+                    welcomePage.classList.add('hidden');
+                    welcomePage.style.display = 'none';
+                }
+                if (mainContent) {
+                    mainContent.classList.add('visible');
+                    mainContent.style.visibility = 'visible';
+                    mainContent.style.opacity = '1';
+                    mainContent.style.display = 'block';
+                    mainContent.style.zIndex = '1';
+                }
+            }
+        }
+        
+        // 绑定按钮点击事件 - 延迟执行确保元素已加载
+        function bindEnterButton() {
+            // 重新获取元素（防止之前获取失败）
+            if (!enterButton) {
+                enterButton = document.getElementById('enterButton');
             }
             
-            // 修改handleEnterDocument函数，添加显示主内容的逻辑
-            var originalHandleEnterDocument = handleEnterDocument;
-            handleEnterDocument = function() {
-                originalHandleEnterDocument();
-                showMainContent();
-            };
+            if (enterButton) {
+                safeLog('绑定进入文档按钮事件');
+                
+                // 移除旧的事件监听器（如果有）
+                var newButton = enterButton.cloneNode(true);
+                enterButton.parentNode.replaceChild(newButton, enterButton);
+                enterButton = newButton;
+                
+                // 鼠标点击
+                enterButton.addEventListener('click', function(e) {
+                    safeLog('按钮被点击');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleEnterDocument();
+                }, false);
+                
+                // 触摸事件（移动端）
+                enterButton.addEventListener('touchend', function(e) {
+                    safeLog('按钮被触摸');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleEnterDocument();
+                }, false);
+                
+                // 键盘事件（回车键和空格键）
+                enterButton.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        safeLog('按钮被键盘触发');
+                        e.preventDefault();
+                        handleEnterDocument();
+                    }
+                }, false);
+                
+                // 确保按钮可访问
+                enterButton.setAttribute('tabindex', '0');
+                enterButton.setAttribute('role', 'button');
+                enterButton.setAttribute('aria-label', '进入文档');
+                enterButton.style.cursor = 'pointer';
+                enterButton.style.pointerEvents = 'auto';
+                
+                safeLog('按钮事件绑定完成');
+            } else {
+                safeError('enterButton 元素未找到，将在100ms后重试');
+                setTimeout(bindEnterButton, 100);
+            }
         }
-
-        // 检查是否已经进入过（使用localStorage）
-        const hasEntered = localStorage.getItem('hasEnteredWelcome');
-        if (hasEntered && welcomePage) {
-            // 如果已经进入过，直接隐藏欢迎页面
-            welcomePage.classList.add('hidden');
-            if (mainContent) {
-                mainContent.classList.add('visible');
-            }
-            updateCursorVisibility();
+        
+        // 延迟绑定，确保DOM已加载
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(bindEnterButton, 100);
+            });
         } else {
-            // 首次进入，显示欢迎页面
-            if (welcomePage) {
-                // 定期创建花瓣
-                for (let i = 0; i < 15; i++) {
-                    setTimeout(() => createWelcomePetal(), i * 500);
-                }
-                setInterval(createWelcomePetal, 2000);
+            setTimeout(bindEnterButton, 100);
+        }
+        
+        // 备用绑定（如果上面的都失败了）
+        setTimeout(bindEnterButton, 500);
+
+        // 总是显示欢迎页面，需要用户点击"进入文档"按钮才能进入
+        safeLog('初始化欢迎页面');
+        if (welcomePage) {
+            // 确保欢迎页面可见
+            welcomePage.classList.remove('hidden');
+            welcomePage.style.display = 'flex';
+            welcomePage.style.visibility = 'visible';
+            welcomePage.style.opacity = '1';
+            
+            // 定期创建花瓣
+            for (var i = 0; i < 15; i++) {
+                setTimeout(function() {
+                    if (typeof createWelcomePetal === 'function' && welcomePage && !welcomePage.classList.contains('hidden')) {
+                        createWelcomePetal();
+                    }
+                }, i * 500);
             }
+            setInterval(function() {
+                if (typeof createWelcomePetal === 'function' && welcomePage && !welcomePage.classList.contains('hidden')) {
+                    createWelcomePetal();
+                }
+            }, 2000);
+        }
+        if (typeof updateCursorVisibility === 'function') {
             updateCursorVisibility();
         }
 
