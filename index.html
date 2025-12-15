@@ -32,7 +32,7 @@
             background-attachment: fixed;
             padding: 0;
             padding-top: 80px;
-            cursor: none;
+            cursor: auto;
             overflow-x: hidden;
             min-height: 100vh;
             margin: 0;
@@ -979,6 +979,19 @@
             max-width: calc(25% - 22.5px);
             flex-shrink: 0;
             box-sizing: border-box;
+        }
+        
+        /* 移动端优化：禁用固定背景和自定义光标 */
+        @media (max-width: 768px) {
+            body {
+                background-attachment: scroll !important;
+                cursor: auto !important;
+            }
+            
+            .custom-cursor,
+            .custom-cursor-dot {
+                display: none !important;
+            }
         }
         
         @media (max-width: 1200px) {
@@ -4691,63 +4704,62 @@
             const path = window.location.pathname;
             const href = window.location.href;
             
-            console.log('=== 路径检测开始 ===');
-            console.log('协议:', protocol);
-            console.log('域名:', hostname);
-            console.log('路径:', path);
-            console.log('完整URL:', href);
-            
             // 如果是本地文件（file:// 协议），使用相对路径
             if (protocol === 'file:') {
-                console.log('检测到本地文件，使用相对路径');
                 return './';
             }
             
-            // 强制检测 GitHub Pages - 如果域名包含 github.io，路径包含 rongronghuajing
-            if (hostname.includes('github.io')) {
-                console.log('检测到 GitHub Pages 域名');
-                // 多种方式检测仓库路径
-                if (path.includes('/rongronghuajing') || href.includes('/rongronghuajing')) {
-                    console.log('检测到仓库路径 /rongronghuajing');
-                    // 确保返回 /rongronghuajing/
+            // 如果是 GitHub Pages - 多种方式检测以确保兼容性
+            if (hostname && hostname.indexOf('github.io') !== -1) {
+                // 检查路径或完整URL是否包含仓库名
+                if (path.indexOf('/rongronghuajing') !== -1 || href.indexOf('/rongronghuajing') !== -1) {
+                    // 确保返回的路径格式正确
                     return '/rongronghuajing/';
                 }
                 // 如果是主域名（username.github.io），使用根路径
-                console.log('GitHub Pages 主域名，使用根路径');
                 return '/';
             }
             
             // 其他情况（本地服务器等），使用相对路径
-            console.log('其他情况，使用相对路径');
             return './';
         }
         
-        // 立即获取并设置 BASE_PATH
+        // 立即获取BASE_PATH，并在页面加载后再次确认
         let BASE_PATH = getBasePath();
         
-        // 双重检查：如果是在 GitHub Pages 但 BASE_PATH 不正确，强制修正
-        if (window.location.hostname.includes('github.io') && 
-            (window.location.pathname.includes('/rongronghuajing') || window.location.href.includes('/rongronghuajing')) &&
-            BASE_PATH !== '/rongronghuajing/') {
-            console.warn('BASE_PATH 检测可能不正确，强制设置为 /rongronghuajing/');
-            BASE_PATH = '/rongronghuajing/';
+        // 双重检查：确保在GitHub Pages上路径正确
+        if (typeof window !== 'undefined' && window.location) {
+            const hostname = window.location.hostname;
+            const path = window.location.pathname;
+            if (hostname && hostname.indexOf('github.io') !== -1) {
+                if ((path && path.indexOf('/rongronghuajing') !== -1) || 
+                    (window.location.href && window.location.href.indexOf('/rongronghuajing') !== -1)) {
+                    if (BASE_PATH !== '/rongronghuajing/') {
+                        BASE_PATH = '/rongronghuajing/';
+                    }
+                }
+            }
         }
-        
-        console.log('=== 最终 BASE_PATH:', BASE_PATH, '===');
-        // BASE_PATH 已在上面设置，这里只是确认
-        console.log('确认 BASE_PATH:', BASE_PATH);
+        console.log('协议:', window.location.protocol);
+        console.log('当前路径:', window.location.pathname);
+        console.log('当前域名:', window.location.hostname);
+        console.log('检测到的基础路径:', BASE_PATH);
         
         // 修复 CSS 和 HTML 中的静态图片路径
         function fixStaticImagePaths() {
-            // 修复 body 背景图片 - 直接设置 style（无论 BASE_PATH 是什么都修复，确保路径正确）
-            const bgImagePath = BASE_PATH === './' ? 'images/background.jpg' : BASE_PATH + 'images/background.jpg';
-            document.body.style.backgroundImage = `url('${bgImagePath}')`;
-            console.log('修复 body 背景图片:', bgImagePath);
+            // 重新确认BASE_PATH（防止异步问题）
+            const currentBasePath = getBasePath();
+            const finalBasePath = currentBasePath !== './' ? currentBasePath : BASE_PATH;
+            
+            // 修复 body 背景图片 - 无论BASE_PATH是什么都修复，确保路径正确
+            const bgPath = finalBasePath === './' ? 'images/background.jpg' : finalBasePath + 'images/background.jpg';
+            document.body.style.backgroundImage = `url('${bgPath}')`;
+            console.log('修复 body 背景图片:', bgPath, 'BASE_PATH:', finalBasePath);
             
             // 修复欢迎页面背景图片
             const welcomeSection = document.querySelector('.welcome-section');
             if (welcomeSection) {
-                const welcomeBgPath = BASE_PATH === './' ? 'images/welcome-bg.jpg' : BASE_PATH + 'images/welcome-bg.jpg';
+                const welcomeBgPath = finalBasePath === './' ? 'images/welcome-bg.jpg' : finalBasePath + 'images/welcome-bg.jpg';
                 welcomeSection.style.backgroundImage = `url('${welcomeBgPath}'), linear-gradient(135deg, #1A1612 0%, #2A241F 50%, #1A1612 100%)`;
                 console.log('修复欢迎页面背景图片:', welcomeBgPath);
             }
@@ -4755,11 +4767,14 @@
             // 修复静态 img 标签（src 以 images/ 开头的）
             const staticImages = document.querySelectorAll('img');
             staticImages.forEach(img => {
-                const originalSrc = img.getAttribute('src');
-                if (originalSrc && originalSrc.startsWith('images/')) {
-                    const fixedSrc = BASE_PATH === './' ? originalSrc : BASE_PATH + originalSrc;
-                    img.src = fixedSrc;
-                    console.log('修复静态图片路径:', originalSrc, '->', fixedSrc);
+                const originalSrc = img.getAttribute('src') || img.src;
+                if (originalSrc && (originalSrc.indexOf('images/') !== -1 || originalSrc.startsWith('images/'))) {
+                    // 如果路径不是完整URL且不是以BASE_PATH开头，则修复
+                    if (!originalSrc.startsWith('http') && !originalSrc.startsWith('/rongronghuajing/')) {
+                        const fixedSrc = finalBasePath === './' ? originalSrc : finalBasePath + (originalSrc.startsWith('images/') ? originalSrc : 'images/' + originalSrc.split('/').pop());
+                        img.src = fixedSrc;
+                        console.log('修复静态图片路径:', originalSrc, '->', fixedSrc);
+                    }
                 }
             });
             
@@ -4769,9 +4784,10 @@
                 // 修复 poster
                 const poster = video.getAttribute('poster');
                 if (poster && poster.startsWith('images/')) {
-                    const fixedPoster = BASE_PATH === './' ? poster : BASE_PATH + poster;
-                    video.poster = fixedPoster;
-                    console.log('修复视频 poster:', poster, '->', fixedPoster);
+                    if (BASE_PATH !== './') {
+                        video.poster = BASE_PATH + poster;
+                        console.log('修复视频 poster:', poster, '->', video.poster);
+                    }
                 }
                 
                 // 修复 source
@@ -4779,9 +4795,10 @@
                 sources.forEach(source => {
                     const src = source.getAttribute('src');
                     if (src && src.startsWith('images/')) {
-                        const fixedSrc = BASE_PATH === './' ? src : BASE_PATH + src;
-                        source.src = fixedSrc;
-                        console.log('修复视频源:', src, '->', fixedSrc);
+                        if (BASE_PATH !== './') {
+                            source.src = BASE_PATH + src;
+                            console.log('修复视频源:', src, '->', source.src);
+                        }
                     }
                 });
             });
@@ -4856,21 +4873,25 @@
                 // 如果找到了文件名，创建图片元素
                 if (filename) {
                     const img = document.createElement('img');
-                    // 构建完整路径 - 强制使用正确的 BASE_PATH
+                    // 重新确认BASE_PATH（确保使用最新值）
+                    const currentBasePath = getBasePath();
+                    const finalBasePath = currentBasePath !== './' ? currentBasePath : BASE_PATH;
+                    
+                    // 构建完整路径
                     let imagePath;
-                    if (BASE_PATH === './') {
+                    if (finalBasePath === './') {
                         imagePath = 'images/' + filename;
                     } else {
-                        // 确保 BASE_PATH 以 / 开头和结尾
-                        const base = BASE_PATH.endsWith('/') ? BASE_PATH : BASE_PATH + '/';
+                        // 确保BASE_PATH以/结尾
+                        const base = finalBasePath.endsWith('/') ? finalBasePath : finalBasePath + '/';
                         imagePath = base + 'images/' + filename;
                     }
                     img.src = imagePath;
                     img.alt = label;
-                    console.log('=== 加载图片 ===');
+                    console.log('尝试加载图片:');
                     console.log('  - 标签:', label);
                     console.log('  - 文件名:', filename);
-                    console.log('  - BASE_PATH:', BASE_PATH);
+                    console.log('  - BASE_PATH:', finalBasePath);
                     console.log('  - 完整路径:', imagePath);
                     console.log('  - 当前URL:', window.location.href);
                     img.style.width = '100%';
@@ -4937,39 +4958,52 @@
                     };
                     
                     // 图片加载失败时显示错误信息并尝试备用路径
-                    let errorTryCount = 0;
                     img.onerror = function() {
-                        errorTryCount++;
-                        console.error('图片加载失败 (尝试 ' + errorTryCount + '):');
+                        // 重新确认BASE_PATH
+                        const currentBasePath = getBasePath();
+                        const finalBasePath = currentBasePath !== './' ? currentBasePath : BASE_PATH;
+                        
+                        console.error('图片加载失败:');
                         console.error('  - 尝试的路径:', img.src);
                         console.error('  - 标签:', label);
                         console.error('  - 文件名:', filename);
-                        console.error('  - BASE_PATH:', BASE_PATH);
+                        console.error('  - BASE_PATH:', finalBasePath);
                         console.error('  - 当前页面URL:', window.location.href);
                         
-                        // 尝试备用路径
+                        // 尝试备用路径和文件名变体
                         const altPaths = [];
-                        if (BASE_PATH === './') {
-                            // 本地环境，尝试绝对路径
-                            altPaths.push('/rongronghuajing/images/' + filename);
-                            altPaths.push('images/' + filename);
-                        } else {
-                            // GitHub Pages，尝试多种路径格式
-                            altPaths.push('images/' + filename);
-                            altPaths.push('./images/' + filename);
-                            altPaths.push('/rongronghuajing/images/' + filename);
-                            // 如果 BASE_PATH 不是预期的，尝试修正
-                            if (BASE_PATH !== '/rongronghuajing/') {
-                                altPaths.push('/rongronghuajing/images/' + filename);
+                        const filenameVariants = [
+                            filename,
+                            filename.replace('.jpg', '.png'),
+                            filename.replace('.png', '.jpg'),
+                            filename.replace('.jpg', '.jpeg'),
+                            label.replace(/\s+/g, '-') + '.jpg',
+                            label.replace(/\s+/g, '') + '.jpg'
+                        ];
+                        
+                        // 为每个文件名变体生成多个路径
+                        filenameVariants.forEach(variant => {
+                            if (finalBasePath === './') {
+                                altPaths.push('images/' + variant);
+                                altPaths.push('/rongronghuajing/images/' + variant);
+                            } else {
+                                altPaths.push(finalBasePath + 'images/' + variant);
+                                altPaths.push('images/' + variant);
+                                altPaths.push('./images/' + variant);
+                                altPaths.push('/rongronghuajing/images/' + variant);
                             }
-                        }
+                        });
+                        
+                        // 去重
+                        const uniquePaths = [...new Set(altPaths)];
+                        console.log('将尝试', uniquePaths.length, '个备用路径');
                         
                         let altIndex = 0;
                         const tryAltPath = () => {
-                            if (altIndex < altPaths.length) {
+                            if (altIndex < uniquePaths.length) {
                                 const altImg = new Image();
-                                altImg.src = altPaths[altIndex];
-                                console.log('尝试备用路径:', altImg.src);
+                                altImg.src = uniquePaths[altIndex];
+                                console.log('尝试备用路径 (' + (altIndex + 1) + '/' + uniquePaths.length + '):', altImg.src);
                                 altImg.onload = function() {
                                     console.log('备用路径成功:', altImg.src);
                                     img.src = altImg.src;
@@ -5105,40 +5139,18 @@
                 video.style.height = 'auto';
                 video.style.borderRadius = '16px';
                 
-                // 尝试加载视频文件 - 支持多个可能的文件名
+                // 尝试加载视频文件
                 const videoSource = document.createElement('source');
-                const possibleVideoNames = ['启发视频.mp4', 'inspiration-video.mp4', '启发视频.MP3'];
-                let currentVideoIndex = 0;
-                
-                function tryLoadVideo(index) {
-                    if (index >= possibleVideoNames.length) {
-                        console.error('所有视频文件尝试失败，请检查 images 文件夹中是否有视频文件');
-                        return;
-                    }
-                    
-                    const videoName = possibleVideoNames[index];
-                    if (BASE_PATH === './') {
-                        videoSource.src = 'images/' + videoName;
-                    } else {
-                        videoSource.src = BASE_PATH + 'images/' + videoName;
-                    }
-                    videoSource.type = videoName.endsWith('.mp4') ? 'video/mp4' : 'video/mpeg';
-                    
-                    // 如果这是第一次尝试，需要先添加 source 元素
-                    if (index === 0) {
-                        video.appendChild(videoSource);
-                    } else {
-                        // 更新现有的 source
-                        video.querySelector('source').src = videoSource.src;
-                        video.querySelector('source').type = videoSource.type;
-                    }
-                    
-                    console.log('尝试加载视频:', videoSource.src, 'BASE_PATH:', BASE_PATH);
-                    video.load();
+                // 构建完整路径
+                if (BASE_PATH === './') {
+                    videoSource.src = 'images/启发视频.mp4';
+                } else {
+                    videoSource.src = BASE_PATH + 'images/启发视频.mp4';
                 }
+                videoSource.type = 'video/mp4';
+                video.appendChild(videoSource);
                 
-                // 开始尝试加载第一个视频
-                tryLoadVideo(0);
+                console.log('尝试加载视频:', videoSource.src, 'BASE_PATH:', BASE_PATH);
                 
                 video.onloadeddata = function() {
                     console.log('视频加载成功:', videoSource.src);
@@ -5149,75 +5161,36 @@
                 };
                 
                 video.onerror = function() {
-                    // 如果视频加载失败，尝试下一个文件名
-                    console.error('视频加载失败:', videoSource.src);
-                    currentVideoIndex++;
-                    if (currentVideoIndex < possibleVideoNames.length) {
-                        tryLoadVideo(currentVideoIndex);
-                    } else {
-                        console.error('所有视频文件尝试失败');
-                    }
+                    // 如果视频加载失败，保持占位符显示
+                    console.error('视频加载失败:', videoSource.src, '完整URL:', video.src);
+                    // 尝试其他可能的文件名
+                    const altNames = ['启发视频.MP3', '启发视频.mp4', 'images/启发视频.mp4'];
+                    let tryIndex = 0;
+                    const tryNext = () => {
+                        if (tryIndex < altNames.length) {
+                            videoSource.src = altNames[tryIndex];
+                            video.load();
+                            tryIndex++;
+                        }
+                    };
+                    tryNext();
                 };
             }
         }
 
         // 页面加载完成后执行图片路径修复和加载
         function initImages() {
-            console.log('=== 开始初始化图片 ===');
-            console.log('BASE_PATH:', BASE_PATH);
             // 先修复静态图片路径
             fixStaticImagePaths();
             // 然后加载动态图片
             loadImages();
-            console.log('=== 图片初始化完成 ===');
         }
         
-        // 立即执行一次（如果 DOM 已加载）
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            console.log('DOM 已就绪，立即执行图片初始化');
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initImages);
+        } else {
             initImages();
         }
-        
-        // 也监听 DOMContentLoaded 事件
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOMContentLoaded 事件触发，执行图片初始化');
-            initImages();
-        });
-        
-        // 作为备用，也监听 window.onload
-        window.addEventListener('load', function() {
-            console.log('window.onload 事件触发，再次检查图片');
-            
-            // 再次确认 BASE_PATH（防止异步问题）
-            const currentBasePath = getBasePath();
-            if (currentBasePath !== BASE_PATH) {
-                console.warn('BASE_PATH 发生变化，从', BASE_PATH, '变为', currentBasePath);
-                BASE_PATH = currentBasePath;
-                // 重新修复所有路径
-                fixStaticImagePaths();
-            }
-            
-            // 检查是否有未加载的图片
-            const placeholders = document.querySelectorAll('.image-placeholder[data-label]');
-            const unloadedPlaceholders = Array.from(placeholders).filter(p => !p.querySelector('img'));
-            if (unloadedPlaceholders.length > 0) {
-                console.log('发现', unloadedPlaceholders.length, '个未加载的图片占位符，重新加载');
-                loadImages();
-            }
-            
-            // 强制修复所有图片的 src 属性
-            const allImages = document.querySelectorAll('img[src*="images/"]');
-            allImages.forEach(img => {
-                const src = img.getAttribute('src') || img.src;
-                if (src && !src.startsWith('http') && !src.startsWith('/rongronghuajing/') && BASE_PATH !== './') {
-                    const fixedSrc = BASE_PATH + (src.startsWith('images/') ? src : 'images/' + src.split('/').pop());
-                    if (fixedSrc !== src) {
-                        console.log('强制修复图片路径:', src, '->', fixedSrc);
-                        img.src = fixedSrc;
-                    }
-                }
-            });
-        });
     </script>
 
     <script>
