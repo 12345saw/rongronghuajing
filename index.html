@@ -4709,7 +4709,7 @@
             // 不阻止默认错误处理，但记录错误
         });
         
-        // 修复所有图片路径 - 直接在页面加载时修复所有 img 标签的 src
+        // 修复所有图片和视频路径 - 强制修复所有资源路径
         function fixAllImagePaths() {
             try {
                 // 检测是否是 GitHub Pages
@@ -4723,31 +4723,78 @@
                     }
                 }
                 
-                // 修复所有 img 标签的 src（如果是以 images/ 开头的相对路径）
-                var allImages = document.querySelectorAll('img[src^="images/"]');
+                if (!isGitHubPages) {
+                    console.log('本地环境，不需要修复路径');
+                    return;
+                }
+                
+                console.log('🔧 开始修复资源路径，BASE_PATH:', basePath);
+                var fixedCount = 0;
+                
+                // 修复所有 img 标签的 src（包括所有以 images/ 开头的）
+                var allImages = document.querySelectorAll('img');
                 for (var i = 0; i < allImages.length; i++) {
                     var img = allImages[i];
-                    var originalSrc = img.getAttribute('src');
-                    if (originalSrc && originalSrc.indexOf('images/') === 0) {
-                        if (isGitHubPages) {
-                            img.src = basePath + originalSrc;
+                    var originalSrc = img.getAttribute('src') || img.src;
+                    
+                    // 如果是相对路径 images/ 开头，且不是完整URL
+                    if (originalSrc && originalSrc.indexOf('images/') === 0 && originalSrc.indexOf('http') !== 0) {
+                        var newSrc = basePath + originalSrc;
+                        // 前3张图片立即加载，其余懒加载优化性能
+                        if (i >= 3 && !img.hasAttribute('loading')) {
+                            img.setAttribute('loading', 'lazy');
                         }
-                        // 如果是本地文件，保持原样
+                        img.src = newSrc;
+                        fixedCount++;
+                        console.log('✅ 修复图片:', originalSrc, '->', newSrc);
                     }
                 }
                 
-                console.log('✅ 已修复所有图片路径，GitHub Pages:', isGitHubPages, 'BASE_PATH:', basePath || './');
+                // 修复 video 标签和 source 标签
+                var allVideos = document.querySelectorAll('video');
+                for (var v = 0; v < allVideos.length; v++) {
+                    var video = allVideos[v];
+                    // 修复 video 标签本身的 src（如果有）
+                    var videoSrc = video.getAttribute('src');
+                    if (videoSrc && videoSrc.indexOf('images/') === 0 && videoSrc.indexOf('http') !== 0) {
+                        video.src = basePath + videoSrc;
+                        fixedCount++;
+                        console.log('✅ 修复视频:', videoSrc, '->', basePath + videoSrc);
+                    }
+                    // 修复 video 内的 source 标签
+                    var sources = video.querySelectorAll('source');
+                    for (var s = 0; s < sources.length; s++) {
+                        var source = sources[s];
+                        var src = source.getAttribute('src');
+                        if (src && src.indexOf('images/') === 0 && src.indexOf('http') !== 0) {
+                            source.src = basePath + src;
+                            fixedCount++;
+                            console.log('✅ 修复视频源:', src, '->', basePath + src);
+                        }
+                    }
+                }
+                
+                console.log('✅ 共修复', fixedCount, '个资源路径');
             } catch (e) {
-                console.error('修复图片路径失败:', e);
+                console.error('❌ 修复资源路径失败:', e);
             }
         }
         
-        // 页面加载完成后修复图片路径
+        // 立即执行一次，然后在多个时机再执行，确保修复成功
+        fixAllImagePaths();
+        
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', fixAllImagePaths);
+            document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(fixAllImagePaths, 100);
+            });
         } else {
-            fixAllImagePaths();
+            setTimeout(fixAllImagePaths, 100);
         }
+        
+        // window.onload 时再执行一次（确保所有内容都加载了）
+        window.addEventListener('load', function() {
+            setTimeout(fixAllImagePaths, 200);
+        });
         
         // 动态获取基础路径（适配 GitHub Pages 子路径和本地文件）
         function getBasePath() {
